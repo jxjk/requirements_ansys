@@ -1,3 +1,4 @@
+# xuQiu.py
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 import json
@@ -24,6 +25,8 @@ class StakeholderSurveyApp:
         
         # 数据存储
         self.stakeholders = []
+        self.requirements = []  # 新增：需求列表
+        self.requirement_trace_matrix = {}  # 新增：需求追溯矩阵
         self.survey_questions = [
             {
                 "id": 1,
@@ -66,6 +69,8 @@ class StakeholderSurveyApp:
         self.responses = defaultdict(list)
         
         self.load_data()
+        self.load_requirements()
+        self.load_trace_matrix()
         self.create_widgets()
         
     def create_widgets(self):
@@ -84,7 +89,9 @@ class StakeholderSurveyApp:
         
         # 创建各个标签页
         self.create_stakeholder_tab(notebook)
+        self.create_requirement_tab(notebook)  # 新增：需求管理标签页
         self.create_survey_tab(notebook)
+        self.create_trace_matrix_tab(notebook)  # 新增：需求追溯矩阵标签页
         self.create_analysis_tab(notebook)
         self.create_report_tab(notebook)
         
@@ -181,6 +188,86 @@ class StakeholderSurveyApp:
         self.load_data()
         self.refresh_stakeholder_list()
         
+    def create_requirement_tab(self, notebook):
+        requirement_frame = ttk.Frame(notebook)
+        notebook.add(requirement_frame, text="需求管理")
+        
+        # 需求信息输入区域
+        input_frame = ttk.LabelFrame(requirement_frame, text="添加/编辑需求", padding=10)
+        input_frame.pack(fill=tk.X, padx=10, pady=10)
+        
+        # 需求ID
+        ttk.Label(input_frame, text="需求ID:").grid(row=0, column=0, sticky=tk.W, pady=5)
+        self.req_id_entry = ttk.Entry(input_frame, width=30)
+        self.req_id_entry.grid(row=0, column=1, padx=5, pady=5)
+        
+        # 需求名称
+        ttk.Label(input_frame, text="需求名称:").grid(row=0, column=2, sticky=tk.W, pady=5)
+        self.req_name_entry = ttk.Entry(input_frame, width=30)
+        self.req_name_entry.grid(row=0, column=3, padx=5, pady=5)
+        
+        # 需求类型
+        ttk.Label(input_frame, text="需求类型:").grid(row=1, column=0, sticky=tk.W, pady=5)
+        self.req_type = ttk.Combobox(input_frame, values=["功能性需求", "非功能性需求", "业务需求", "用户需求"], width=27)
+        self.req_type.grid(row=1, column=1, padx=5, pady=5)
+        self.req_type.set("功能性需求")
+        
+        # 优先级
+        ttk.Label(input_frame, text="优先级:").grid(row=1, column=2, sticky=tk.W, pady=5)
+        self.req_priority = ttk.Combobox(input_frame, values=["高", "中", "低"], width=27)
+        self.req_priority.grid(row=1, column=3, padx=5, pady=5)
+        self.req_priority.set("中")
+        
+        # 状态
+        ttk.Label(input_frame, text="状态:").grid(row=2, column=0, sticky=tk.W, pady=5)
+        self.req_status = ttk.Combobox(input_frame, values=["新建", "评审中", "已批准", "开发中", "已完成", "已取消"], width=27)
+        self.req_status.grid(row=2, column=1, padx=5, pady=5)
+        self.req_status.set("新建")
+        
+        # 来源
+        ttk.Label(input_frame, text="来源:").grid(row=2, column=2, sticky=tk.W, pady=5)
+        self.req_source = ttk.Entry(input_frame, width=30)
+        self.req_source.grid(row=2, column=3, padx=5, pady=5)
+        
+        # 需求描述
+        ttk.Label(input_frame, text="需求描述:").grid(row=3, column=0, sticky=tk.W, pady=5)
+        self.req_desc = tk.Text(input_frame, width=70, height=4)
+        self.req_desc.grid(row=3, column=1, columnspan=3, padx=5, pady=5)
+        
+        # 按钮区域
+        button_frame = ttk.Frame(input_frame)
+        button_frame.grid(row=4, column=0, columnspan=4, pady=10)
+        
+        ttk.Button(button_frame, text="添加需求", command=self.add_requirement).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="更新需求", command=self.update_requirement).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="删除需求", command=self.delete_requirement).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="清空表单", command=self.clear_requirement_form).pack(side=tk.LEFT, padx=5)
+        
+        # 需求列表区域
+        list_frame = ttk.LabelFrame(requirement_frame, text="需求列表", padding=10)
+        list_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        # 创建表格
+        columns = ("ID", "名称", "类型", "优先级", "状态", "来源")
+        self.requirement_tree = ttk.Treeview(list_frame, columns=columns, show="headings", height=10)
+        
+        # 设置列标题
+        for col in columns:
+            self.requirement_tree.heading(col, text=col)
+            self.requirement_tree.column(col, width=120, anchor=tk.CENTER)
+        
+        # 添加滚动条
+        scrollbar = ttk.Scrollbar(list_frame, orient=tk.VERTICAL, command=self.requirement_tree.yview)
+        self.requirement_tree.configure(yscroll=scrollbar.set)
+        
+        self.requirement_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        # 绑定选择事件
+        self.requirement_tree.bind("<<TreeviewSelect>>", self.on_requirement_select)
+        
+        # 加载数据
+        self.refresh_requirement_list()
         
     def create_survey_tab(self, notebook):
         survey_frame = ttk.Frame(notebook)
@@ -244,7 +331,45 @@ class StakeholderSurveyApp:
         # 处理鼠标滚轮事件
         self.survey_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
 
-
+    def create_trace_matrix_tab(self, notebook):
+        trace_frame = ttk.Frame(notebook)
+        notebook.add(trace_frame, text="需求追溯矩阵")
+        
+        # 控制区域
+        control_frame = ttk.Frame(trace_frame)
+        control_frame.pack(fill=tk.X, padx=10, pady=10)
+        
+        ttk.Button(control_frame, text="生成追溯矩阵", command=self.generate_trace_matrix).pack(side=tk.LEFT, padx=5)
+        ttk.Button(control_frame, text="导出追溯矩阵", command=self.export_trace_matrix).pack(side=tk.LEFT, padx=5)
+        
+        # 矩阵显示区域
+        matrix_frame = ttk.Frame(trace_frame)
+        matrix_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        # 创建表格
+        columns = ("需求ID", "需求名称", "关联设计", "关联开发", "关联测试", "状态")
+        self.trace_tree = ttk.Treeview(matrix_frame, columns=columns, show="headings", height=15)
+        
+        # 设置列标题
+        for col in columns:
+            self.trace_tree.heading(col, text=col)
+            self.trace_tree.column(col, width=120, anchor=tk.CENTER)
+        
+        # 添加滚动条
+        v_scrollbar = ttk.Scrollbar(matrix_frame, orient=tk.VERTICAL, command=self.trace_tree.yview)
+        h_scrollbar = ttk.Scrollbar(matrix_frame, orient=tk.HORIZONTAL, command=self.trace_tree.xview)
+        self.trace_tree.configure(yscroll=v_scrollbar.set, xscroll=h_scrollbar.set)
+        
+        self.trace_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        v_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        h_scrollbar.pack(side=tk.BOTTOM, fill=tk.X)
+        
+        # 绑定选择事件
+        self.trace_tree.bind("<<TreeviewSelect>>", self.on_trace_select)
+        
+        # 加载数据
+        self.refresh_trace_matrix()
+        
     def create_analysis_tab(self, notebook):
         analysis_frame = ttk.Frame(notebook)
         notebook.add(analysis_frame, text="数据分析")
@@ -388,7 +513,6 @@ class StakeholderSurveyApp:
         self.emotion.set("中性")
         self.contact_entry.delete(0, tk.END)
 
-
     def refresh_stakeholder_list(self):
         # 清空现有数据
         for item in self.stakeholder_tree.get_children():
@@ -434,6 +558,210 @@ class StakeholderSurveyApp:
             self.interest_label.config(text=str(values[6]))
             self.emotion.set(values[7])
             
+    def add_requirement(self):
+        req_id = self.req_id_entry.get().strip()
+        name = self.req_name_entry.get().strip()
+        req_type = self.req_type.get()
+        priority = self.req_priority.get()
+        status = self.req_status.get()
+        source = self.req_source.get().strip()
+        description = self.req_desc.get("1.0", tk.END).strip()
+        
+        if not req_id or not name:
+            messagebox.showwarning("输入错误", "请输入需求ID和需求名称")
+            return
+            
+        requirement = {
+            "id": req_id,
+            "name": name,
+            "type": req_type,
+            "priority": priority,
+            "status": status,
+            "source": source,
+            "description": description,
+            "created_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "updated_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+        
+        self.requirements.append(requirement)
+        self.refresh_requirement_list()
+        self.clear_requirement_form()
+        self.save_requirements()
+        messagebox.showinfo("成功", f"需求 {name} 已添加")
+        
+    def update_requirement(self):
+        selected = self.requirement_tree.selection()
+        if not selected:
+            messagebox.showwarning("选择错误", "请先选择要更新的需求")
+            return
+            
+        item = self.requirement_tree.item(selected[0])
+        req_id = item['values'][0]
+        
+        name = self.req_name_entry.get().strip()
+        req_type = self.req_type.get()
+        priority = self.req_priority.get()
+        status = self.req_status.get()
+        source = self.req_source.get().strip()
+        description = self.req_desc.get("1.0", tk.END).strip()
+        
+        if not name:
+            messagebox.showwarning("输入错误", "请输入需求名称")
+            return
+            
+        for i, requirement in enumerate(self.requirements):
+            if requirement["id"] == req_id:
+                self.requirements[i] = {
+                    "id": req_id,
+                    "name": name,
+                    "type": req_type,
+                    "priority": priority,
+                    "status": status,
+                    "source": source,
+                    "description": description,
+                    "created_at": requirement["created_at"],
+                    "updated_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                }
+                break
+                
+        self.refresh_requirement_list()
+        self.save_requirements()
+        messagebox.showinfo("成功", f"需求 {name} 已更新")
+        
+    def delete_requirement(self):
+        selected = self.requirement_tree.selection()
+        if not selected:
+            messagebox.showwarning("选择错误", "请先选择要删除的需求")
+            return
+            
+        if messagebox.askyesno("确认删除", "确定要删除选中的需求吗？"):
+            item = self.requirement_tree.item(selected[0])
+            req_id = item['values'][0]
+            
+            self.requirements = [r for r in self.requirements if r["id"] != req_id]
+            self.refresh_requirement_list()
+            self.clear_requirement_form()
+            self.save_requirements()
+            messagebox.showinfo("成功", "需求已删除")
+            
+    def clear_requirement_form(self):
+        self.req_id_entry.delete(0, tk.END)
+        self.req_name_entry.delete(0, tk.END)
+        self.req_type.set("功能性需求")
+        self.req_priority.set("中")
+        self.req_status.set("新建")
+        self.req_source.delete(0, tk.END)
+        self.req_desc.delete("1.0", tk.END)
+        
+    def refresh_requirement_list(self):
+        # 清空现有数据
+        for item in self.requirement_tree.get_children():
+            self.requirement_tree.delete(item)
+            
+        # 添加数据
+        for requirement in self.requirements:
+            self.requirement_tree.insert("", tk.END, values=(
+                requirement["id"],
+                requirement["name"],
+                requirement["type"],
+                requirement["priority"],
+                requirement["status"],
+                requirement["source"]
+            ))
+            
+    def on_requirement_select(self, event):
+        selected = self.requirement_tree.selection()
+        if selected:
+            item = self.requirement_tree.item(selected[0])
+            values = item['values']
+            
+            # 填充表单
+            self.req_id_entry.delete(0, tk.END)
+            self.req_id_entry.insert(0, values[0])
+            
+            self.req_name_entry.delete(0, tk.END)
+            self.req_name_entry.insert(0, values[1])
+            
+            self.req_type.set(values[2])
+            self.req_priority.set(values[3])
+            self.req_status.set(values[4])
+            
+            # 查找完整需求信息
+            for req in self.requirements:
+                if req["id"] == values[0]:
+                    self.req_source.delete(0, tk.END)
+                    self.req_source.insert(0, req["source"])
+                    self.req_desc.delete("1.0", tk.END)
+                    self.req_desc.insert("1.0", req["description"])
+                    break
+                    
+    def generate_trace_matrix(self):
+        # 清空现有数据
+        for item in self.trace_tree.get_children():
+            self.trace_tree.delete(item)
+            
+        # 生成追溯矩阵数据
+        for requirement in self.requirements:
+            # 检查是否已有追溯信息，如果没有则创建默认值
+            if requirement["id"] not in self.requirement_trace_matrix:
+                self.requirement_trace_matrix[requirement["id"]] = {
+                    "design": "",
+                    "development": "",
+                    "testing": "",
+                    "status": "未开始"
+                }
+                
+            trace_info = self.requirement_trace_matrix[requirement["id"]]
+            
+            self.trace_tree.insert("", tk.END, values=(
+                requirement["id"],
+                requirement["name"],
+                trace_info["design"],
+                trace_info["development"],
+                trace_info["testing"],
+                trace_info["status"]
+            ))
+            
+        self.save_trace_matrix()
+        messagebox.showinfo("成功", "需求追溯矩阵已生成")
+        
+    def export_trace_matrix(self):
+        if not self.requirement_trace_matrix:
+            messagebox.showwarning("无数据", "没有追溯矩阵数据可供导出")
+            return
+            
+        file_path = filedialog.asksaveasfilename(
+            defaultextension=".csv",
+            filetypes=[("CSV files", "*.csv"), ("All files", "*.*")]
+        )
+        
+        if file_path:
+            try:
+                import csv
+                with open(file_path, 'w', newline='', encoding='utf-8') as f:
+                    writer = csv.writer(f)
+                    writer.writerow(["需求ID", "需求名称", "关联设计", "关联开发", "关联测试", "状态"])
+                    for req in self.requirements:
+                        trace_info = self.requirement_trace_matrix.get(req["id"], {})
+                        writer.writerow([
+                            req["id"],
+                            req["name"],
+                            trace_info.get("design", ""),
+                            trace_info.get("development", ""),
+                            trace_info.get("testing", ""),
+                            trace_info.get("status", "未开始")
+                        ])
+                messagebox.showinfo("导出成功", f"追溯矩阵已导出到 {file_path}")
+            except Exception as e:
+                messagebox.showerror("导出失败", f"导出数据时出错: {str(e)}")
+                
+    def refresh_trace_matrix(self):
+        self.generate_trace_matrix()
+        
+    def on_trace_select(self, event):
+        # 这里可以添加选择追溯矩阵行时的操作
+        pass
+        
     def start_survey(self):
         stakeholder_name = self.survey_stakeholder.get()
         if not stakeholder_name:
@@ -501,7 +829,6 @@ class StakeholderSurveyApp:
         
         messagebox.showinfo("保存成功", f"{stakeholder_name} 的调查结果已保存")
         
-  
     def generate_analysis(self):
         # 清空图表区域
         for widget in self.chart_frame.winfo_children():
@@ -612,17 +939,17 @@ class StakeholderSurveyApp:
         self.report_text.delete(1.0, tk.END)
         
         report = f"""
-    干系人需求调查报告
-    生成时间: {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+干系人需求调查报告
+生成时间: {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
 
-    ====================================================
+====================================================
 
-    一、干系人概况
-    ----------------------------------------------------
-    总干系人数: {len(self.stakeholders)}
+一、干系人概况
+----------------------------------------------------
+总干系人数: {len(self.stakeholders)}
 
-    职能类型分布:
-    """
+职能类型分布:
+"""
         # 职能类型统计
         function_types = [s['function_type'] for s in self.stakeholders]
         function_counts = pd.Series(function_types).value_counts()
@@ -689,10 +1016,31 @@ class StakeholderSurveyApp:
             avg_urgency = sum(urgency_scores) / len(urgency_scores)
             report += f"平均需求紧急性评分: {avg_urgency:.2f} (满分5分)\n"
             
+        # 需求统计
+        report += f"\n三、需求管理概览\n----------------------------------------------------\n"
+        report += f"总需求数量: {len(self.requirements)}\n"
+        
+        # 需求状态统计
+        status_counts = {}
+        for req in self.requirements:
+            status = req['status']
+            status_counts[status] = status_counts.get(status, 0) + 1
+            
+        report += "\n需求状态分布:\n"
+        for status, count in status_counts.items():
+            report += f"  {status}: {count}个\n"
+            
+        # 需求优先级统计
+        priority_counts = {}
+        for req in self.requirements:
+            priority = req['priority']
+            priority_counts[priority] = priority_counts.get(priority, 0) + 1
+            
+        report += "\n需求优先级分布:\n"
+        for priority, count in priority_counts.items():
+            report += f"  {priority}: {count}个\n"
+            
         self.report_text.insert(tk.END, report)
-
-
-
 
     def export_data(self):
         if not self.stakeholders and not self.responses:
@@ -707,7 +1055,9 @@ class StakeholderSurveyApp:
         if file_path:
             data = {
                 "stakeholders": self.stakeholders,
+                "requirements": self.requirements,
                 "responses": dict(self.responses),
+                "trace_matrix": self.requirement_trace_matrix,
                 "exported_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }
             
@@ -718,73 +1068,6 @@ class StakeholderSurveyApp:
             except Exception as e:
                 messagebox.showerror("导出失败", f"导出数据时出错: {str(e)}")
                 
-    def generate_report(self):
-        self.report_text.delete(1.0, tk.END)
-        
-        report = f"""
-干系人需求调查报告
-生成时间: {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
-
-====================================================
-
-一、干系人概况
-----------------------------------------------------
-总干系人数: {len(self.stakeholders)}
-
-职能类型分布:
-"""
-        # 职能类型统计
-        function_types = [s['function_type'] for s in self.stakeholders]
-        function_counts = pd.Series(function_types).value_counts()
-        for func, count in function_counts.items():
-            report += f"  {func}: {count}人\n"
-            
-        report += "\n职级分布:\n"
-        # 职级统计
-        levels = [s['level'] for s in self.stakeholders]
-        level_counts = pd.Series(levels).value_counts()
-        for level, count in level_counts.items():
-            report += f"  {level}: {count}人\n"
-            
-        report += f"\n二、调查数据概览\n----------------------------------------------------\n"
-        report += f"已完成调查人数: {len(self.responses)}\n"
-        total_responses = sum(len(responses) for responses in self.responses.values())
-        report += f"总调查次数: {total_responses}\n"
-        
-        # 情绪分析
-        emotions = []
-        for responses in self.responses.values():
-            for response in responses:
-                for q_id, answer in response['responses'].items():
-                    question = next((q for q in self.survey_questions if q['id'] == q_id), None)
-                    if question and question['category'] == '情绪状态':
-                        emotions.append(answer)
-                        
-        if emotions:
-            emotion_counts = pd.Series(emotions).value_counts()
-            report += "\n情绪状态分布:\n"
-            for emotion, count in emotion_counts.items():
-                percentage = (count / len(emotions)) * 100
-                report += f"  {emotion}: {count}人 ({percentage:.1f}%)\n"
-                
-        # 需求重要性分析
-        importance_scores = []
-        for responses in self.responses.values():
-            for response in responses:
-                for q_id, answer in response['responses'].items():
-                    question = next((q for q in self.survey_questions if q['id'] == q_id), None)
-                    if question and question['category'] == '需求重要性':
-                        score_map = {
-                            "非常重要": 5, "重要": 4, "一般": 3, "不重要": 2, "完全不重要": 1
-                        }
-                        importance_scores.append(score_map.get(answer, 0))
-                        
-        if importance_scores:
-            avg_importance = sum(importance_scores) / len(importance_scores)
-            report += f"\n平均需求重要性评分: {avg_importance:.2f} (满分5分)\n"
-            
-        self.report_text.insert(tk.END, report)
-        
     def save_report(self):
         report_content = self.report_text.get(1.0, tk.END)
         if not report_content.strip():
@@ -897,6 +1180,38 @@ class StakeholderSurveyApp:
             pass
         except Exception as e:
             print(f"加载调查数据时出错: {e}")
+            
+    def save_requirements(self):
+        try:
+            with open("requirements.json", "w", encoding="utf-8") as f:
+                json.dump(self.requirements, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            print(f"保存需求数据时出错: {e}")
+            
+    def load_requirements(self):
+        try:
+            with open("requirements.json", "r", encoding="utf-8") as f:
+                self.requirements = json.load(f)
+        except FileNotFoundError:
+            self.requirements = []
+        except Exception as e:
+            print(f"加载需求数据时出错: {e}")
+            
+    def save_trace_matrix(self):
+        try:
+            with open("trace_matrix.json", "w", encoding="utf-8") as f:
+                json.dump(self.requirement_trace_matrix, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            print(f"保存追溯矩阵数据时出错: {e}")
+            
+    def load_trace_matrix(self):
+        try:
+            with open("trace_matrix.json", "r", encoding="utf-8") as f:
+                self.requirement_trace_matrix = json.load(f)
+        except FileNotFoundError:
+            self.requirement_trace_matrix = {}
+        except Exception as e:
+            print(f"加载追溯矩阵数据时出错: {e}")
 
 def main():
     root = tk.Tk()
