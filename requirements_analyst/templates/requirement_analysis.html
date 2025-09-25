@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+
+{% block title %}{{ project.name }} - 需求分析{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('index') }}">项目</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('project_detail', project_id=project.id) }}">{{ project.name }}</a></li>
+                <li class="breadcrumb-item active">需求分析</li>
+            </ol>
+        </nav>
+        
+        <div class="d-flex justify-content-between align-items-center">
+            <h2><i class="fas fa-brain me-2"></i>需求分析</h2>
+            <div>
+                <a href="{{ url_for('requirement_collection', project_id=project.id) }}" class="btn btn-outline-primary me-2">
+                    <i class="fas fa-arrow-left me-1"></i>返回采集
+                </a>
+                <a href="{{ url_for('roadmap_planning', project_id=project.id) }}" class="btn btn-primary">
+                    下一步：规划路线图<i class="fas fa-arrow-right ms-1"></i>
+                </a>
+            </div>
+        </div>
+        <p class="text-muted">"想明白" - 分析、建模和优先级排序</p>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">优先级分布</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-group">
+                    {% for priority, count in priority_stats.items() %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        {{ priority|title }}
+                        <span class="badge bg-primary rounded-pill">{{ count }}</span>
+                    </li>
+                    {% else %}
+                    <li class="list-group-item text-muted">暂无需求数据</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">类别分布</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-group">
+                    {% for category, count in category_stats.items() %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        {{ category|title }}
+                        <span class="badge bg-info rounded-pill">{{ count }}</span>
+                    </li>
+                    {% else %}
+                    <li class="list-group-item text-muted">暂无需求数据</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">需求分析看板</h5>
+                <div class="btn-group">
+                    <button class="btn btn-sm btn-outline-secondary active" onclick="filterRequirements('all')">全部</button>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="filterRequirements('high')">高优先级</button>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="filterRequirements('functional')">功能需求</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th width="30%">需求标题</th>
+                                <th width="10%">优先级</th>
+                                <th width="10%">类别</th>
+                                <th width="15%">状态</th>
+                                <th width="25%">验收标准</th>
+                                <th width="10%">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="requirementsBody">
+                            {% for requirement in requirements %}
+                            <tr class="requirement-row" data-priority="{{ requirement.priority }}" data-category="{{ requirement.category }}">
+                                <td>
+                                    <strong>{{ requirement.title }}</strong>
+                                    <br>
+                                    <small class="text-muted">{{ requirement.description[:100] }}{% if requirement.description|length > 100 %}...{% endif %}</small>
+                                </td>
+                                <td>
+                                    <select class="form-select form-select-sm" onchange="updateRequirementPriority({{ requirement.id }}, this.value)">
+                                        <option value="high" {% if requirement.priority == 'high' %}selected{% endif %}>高</option>
+                                        <option value="medium" {% if requirement.priority == 'medium' %}selected{% endif %}>中</option>
+                                        <option value="low" {% if requirement.priority == 'low' %}selected{% endif %}>低</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">{{ requirement.category }}</span>
+                                </td>
+                                <td>
+                                    <select class="form-select form-select-sm" onchange="updateRequirementStatus({{ requirement.id }}, this.value)">
+                                        <option value="collected" {% if requirement.status == 'collected' %}selected{% endif %}>已收集</option>
+                                        <option value="analyzing" {% if requirement.status == 'analyzing' %}selected{% endif %}>分析中</option>
+                                        <option value="confirmed" {% if requirement.status == 'confirmed' %}selected{% endif %}>已确认</option>
+                                        <option value="rejected" {% if requirement.status == 'rejected' %}selected{% endif %}>已拒绝</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <small>{{ requirement.acceptance_criteria[:80] or '暂无' }}{% if requirement.acceptance_criteria and requirement.acceptance_criteria|length > 80 %}...{% endif %}</small>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="viewRequirement({{ requirement.id }})">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">
+                                    <i class="fas fa-inbox fa-2x mb-2"></i>
+                                    <p>暂无需求数据</p>
+                                    <a href="{{ url_for('requirement_collection', project_id=project.id) }}" class="btn btn-sm btn-primary">
+                                        去采集需求
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function filterRequirements(filterType) {
+    const rows = document.querySelectorAll('.requirement-row');
+    
+    rows.forEach(row => {
+        let show = true;
+        
+        if (filterType === 'high') {
+            show = row.dataset.priority === 'high';
+        } else if (filterType === 'functional') {
+            show = row.dataset.category === 'functional';
+        }
+        // 'all' 时显示所有行
+        
+        row.style.display = show ? '' : 'none';
+    });
+    
+    // 更新按钮状态
+    document.querySelectorAll('.btn-group .btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    event.target.classList.add('active');
+}
+
+async function updateRequirementPriority(requirementId, priority) {
+    try {
+        const response = await fetch(`/api/requirements/${requirementId}/update`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ priority: priority })
+        });
+        
+        const result = await response.json();
+        if (result.success) {
+            RequirementsAnalyst.showToast('优先级更新成功', 'success');
+        }
+    } catch (error) {
+        console.error('更新优先级失败:', error);
+        RequirementsAnalyst.showToast('更新失败', 'danger');
+    }
+}
+
+async function updateRequirementStatus(requirementId, status) {
+    try {
+        const response = await fetch(`/api/requirements/${requirementId}/update`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ status: status })
+        });
+        
+        const result = await response.json();
+        if (result.success) {
+            RequirementsAnalyst.showToast('状态更新成功', 'success');
+        }
+    } catch (error) {
+        console.error('更新状态失败:', error);
+        RequirementsAnalyst.showToast('更新失败', 'danger');
+    }
+}
+</script>
+{% endblock %}

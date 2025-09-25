@@ -1,0 +1,664 @@
+{% extends "base.html" %}
+
+{% block title %}{{ project.name }} - 需求采集{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('index') }}">项目</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('project_detail', project_id=project.id) }}">{{ project.name }}</a></li>
+                <li class="breadcrumb-item active">需求采集</li>
+            </ol>
+        </nav>
+        
+        <div class="d-flex justify-content-between align-items-center">
+            <h2><i class="fas fa-list-alt me-2"></i>需求采集</h2>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addRequirementModal">
+                <i class="fas fa-plus me-1"></i>添加需求
+            </button>
+        </div>
+        <p class="text-muted">"听清楚" - 全面收集和记录原始需求</p>
+    </div>
+</div>
+
+<!-- 调试信息 >
+<div class="row mb-3">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">调试信息</h5>
+            </div>
+            <div class="card-body">
+                <p>项目ID: {{ project.id }}</p>
+                <p>项目名称: {{ project.name }}</p>
+                <button class="btn btn-sm btn-info" onclick="debugApiCall()">测试API调用</button>
+                <button class="btn btn-sm btn-warning" onclick="forceRefresh()">强制刷新列表</button>
+                <button class="btn btn-sm btn-danger" onclick="diagnoseData()">诊断数据问题</button>                <div id="debugInfo" class="mt-2"></div>
+            </div>
+        </div>
+    </div>
+</div -->
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">需求列表</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>标题</th>
+                                <th>来源</th>
+                                <th>类别</th>
+                                <th>优先级</th>
+                                <th>状态</th>
+                                <th>ROI</th>
+                                <th>创建时间</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="requirementsBody">
+                            <tr><td colspan="9" class="text-center">加载中...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加需求模态框 -->
+<div class="modal fade" id="addRequirementModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">添加需求</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="requirementForm">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="mb-3">
+                                <label for="requirementTitle" class="form-label">需求标题 *</label>
+                                <input type="text" class="form-control" id="requirementTitle" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="requirementPriority" class="form-label">优先级</label>
+                                <select class="form-select" id="requirementPriority">
+                                    <option value="high">高</option>
+                                    <option value="medium" selected>中</option>
+                                    <option value="low">低</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="requirementSource" class="form-label">需求来源</label>
+                                <select class="form-select" id="requirementSource">
+                                    <option value="">选择来源...</option>
+                                    {% for stakeholder in stakeholders %}
+                                    <option value="{{ stakeholder.name }}">{{ stakeholder.name }} ({{ stakeholder.role }})</option>
+                                    {% endfor %}
+                                    <option value="市场调研">市场调研</option>
+                                    <option value="竞品分析">竞品分析</option>
+                                    <option value="业务规划">业务规划</option>
+                                    <option value="其他">其他</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="requirementCategory" class="form-label">需求类别</label>
+                                <select class="form-select" id="requirementCategory">
+                                    <option value="functional">功能需求</option>
+                                    <option value="non-functional">非功能需求</option>
+                                    <option value="business">业务需求</option>
+                                    <option value="user">用户需求</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="requirementDescription" class="form-label">需求描述 *</label>
+                        <textarea class="form-control" id="requirementDescription" rows="4" required placeholder="详细描述需求内容、背景和目标..."></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="requirementCriteria" class="form-label">验收标准</label>
+                        <textarea class="form-control" id="requirementCriteria" rows="3" placeholder="描述如何验证需求是否完成..."></textarea>
+                    </div>
+                </form>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0">价值预估</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="estimatedBusinessValue" class="form-label">业务价值 (1-10分)</label>
+                                <input type="range" class="form-range" id="estimatedBusinessValue" min="1" max="10" value="5">
+                                <div class="d-flex justify-content-between">
+                                    <small>1分 (低)</small>
+                                    <span id="businessValueDisplay">5分</span>
+                                    <small>10分 (高)</small>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="estimatedUserValue" class="form-label">用户价值 (1-10分)</label>
+                                <input type="range" class="form-range" id="estimatedUserValue" min="1" max="10" value="5">
+                                <div class="d-flex justify-content-between">
+                                    <small>1分 (低)</small>
+                                    <span id="userValueDisplay">5分</span>
+                                    <small>10分 (高)</small>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="estimatedTechnicalValue" class="form-label">技术价值 (1-10分)</label>
+                                <input type="range" class="form-range" id="estimatedTechnicalValue" min="1" max="10" value="5">
+                                <div class="d-flex justify-content-between">
+                                    <small>1分 (低)</small>
+                                    <span id="technicalValueDisplay">5分</span>
+                                    <small>10分 (高)</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0">工作量预估</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="estimatedEffort" class="form-label">预估工作量 (1-10分)</label>
+                                <input type="range" class="form-range" id="estimatedEffort" min="1" max="10" value="5">
+                                <div class="d-flex justify-content-between">
+                                    <small>1分 (简单)</small>
+                                    <span id="effortDisplay">5分</span>
+                                    <small>10分 (复杂)</small>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">投资回报率 (ROI)</label>
+                                <div class="alert alert-info py-2">
+                                    <strong id="roiDisplay">1.00</strong>
+                                    <small class="text-muted"> (价值总分 / 工作量)</small>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="valueAssessor" class="form-label">评估人</label>
+                                <input type="text" class="form-control" id="valueAssessor" placeholder="填写评估人姓名">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="saveRequirementBtn">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("页面加载完成，开始加载需求列表");
+    loadRequirements();
+    
+    // 绑定保存按钮事件
+    const saveBtn = document.getElementById('saveRequirementBtn');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', saveRequirement);
+        console.log("保存按钮事件绑定完成");
+    } else {
+        console.error("未找到保存按钮");
+    }
+    
+    // 绑定滑块事件
+    ['estimatedBusinessValue', 'estimatedUserValue', 'estimatedTechnicalValue', 'estimatedEffort'].forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.addEventListener('input', updateValueDisplays);
+        }
+    });
+    
+    // 初始化显示
+    updateValueDisplays();
+});
+
+// 强制刷新列表
+function forceRefresh() {
+    loadRequirements();
+}
+
+// 调试API调用
+async function debugApiCall() {
+    const debugInfo = document.getElementById('debugInfo');
+    debugInfo.innerHTML = '<p>正在测试API调用...</p>';
+    
+    try {
+        // 添加时间戳防止缓存
+        const timestamp = new Date().getTime();
+        const response = await fetch(`/api/requirements/{{ project.id }}?t=${timestamp}`, {
+            headers: {
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache',
+                'Expires': '0'
+            }
+        });
+        const status = response.status;
+        const data = await response.json();
+        
+        debugInfo.innerHTML = `
+            <p><strong>API响应状态:</strong> ${status}</p>
+            <p><strong>响应数据类型:</strong> ${Array.isArray(data) ? '数组' : typeof data}</p>
+            <p><strong>数据长度:</strong> ${Array.isArray(data) ? data.length : 'N/A'}</p>
+            <p><strong>响应数据:</strong></p>
+            <pre style="max-height: 300px; overflow-y: auto;">${JSON.stringify(data, null, 2)}</pre>
+        `;
+        
+        console.log('调试API响应:', {status, data});
+    } catch (error) {
+        debugInfo.innerHTML = `<p class="text-danger"><strong>API调用错误:</strong> ${error.message}</p>`;
+        console.error('调试API调用失败:', error);
+    }
+}
+
+// 加载需求列表
+async function loadRequirements() {
+    console.log("开始加载需求列表");
+    const tbody = document.getElementById('requirementsBody');
+    if (!tbody) {
+        console.error("未找到需求列表容器");
+        return;
+    }
+    
+    // 显示加载状态
+    tbody.innerHTML = '<tr><td colspan="9" class="text-center">加载中...</td></tr>';
+    
+    try {
+        // 添加时间戳防止缓存
+        const timestamp = new Date().getTime();
+        const response = await fetch(`/api/requirements/{{ project.id }}?t=${timestamp}`, {
+            headers: {
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache',
+                'Expires': '0'
+            }
+        });
+        console.log("API响应状态:", response.status);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const rawData = await response.json();
+        console.log('原始响应数据:', rawData);
+        console.log('原始响应数据类型:', typeof rawData);
+        console.log('是否为数组:', Array.isArray(rawData));
+        
+        // 修复数据处理逻辑 - 根据API实际返回格式处理
+        let requirements = [];
+        // 如果返回的是数组，直接使用
+        if (Array.isArray(rawData)) {
+            requirements = rawData;
+        } 
+        // 如果返回的是对象且有success字段为false，抛出错误
+        else if (rawData && typeof rawData === 'object' && rawData.success === false) {
+            throw new Error(rawData.error || 'API返回错误');
+        }
+        // 如果是其他情况（比如单个需求对象），转换为数组
+        else if (rawData && typeof rawData === 'object') {
+            requirements = [rawData];
+        }
+        
+        console.log('处理后的需求数据:', requirements);
+        console.log('需求数据长度:', requirements.length);
+        
+        // 渲染数据
+        renderRequirements(requirements);
+        
+    } catch (error) {
+        console.error('加载需求失败:', error);
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center text-danger">加载失败: ${error.message}</td></tr>`;
+    }
+}
+
+function renderRequirements(requirements) {
+    const tbody = document.getElementById('requirementsBody');
+    if (!tbody) return;
+    
+    tbody.innerHTML = '';
+    
+    console.log('渲染需求数据:', requirements);
+    
+    if (!requirements || !Array.isArray(requirements) || requirements.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" class="text-center">暂无需求数据</td></tr>';
+        return;
+    }
+    
+    console.log(`总共 ${requirements.length} 条需求记录`);
+    
+    requirements.forEach((req, index) => {
+        console.log(`需求 ${index + 1}:`, req);
+        
+        // 确保req是一个对象
+        if (typeof req !== 'object' || req === null) {
+            console.warn(`需求 ${index + 1} 不是有效对象:`, req);
+            return;
+        }
+        
+        const row = document.createElement('tr');
+        const createdAt = req.created_at ? new Date(req.created_at).toLocaleDateString() : '-';
+        const roi = typeof req.estimated_roi === 'number' ? req.estimated_roi.toFixed(2) : '-';
+        
+        row.innerHTML = `
+            <td>${escapeHtml(req.id || 'N/A')}</td>
+            <td>
+                <strong>${escapeHtml(req.title || '')}</strong>
+                ${req.description ? `<br><small class="text-muted">${escapeHtml(req.description.substring(0, 50))}${req.description.length > 50 ? '...' : ''}</small>` : ''}
+            </td>
+            <td>${escapeHtml(req.source || '-')}</td>
+            <td><span class="badge bg-secondary">${getCategoryText(req.category)}</span></td>
+            <td><span class="badge bg-${getPriorityBadgeColor(req.priority)}">${getPriorityText(req.priority)}</span></td>
+            <td><span class="badge bg-${getStatusBadgeColor(req.status)}">${getStatusText(req.status)}</span></td>
+            <td>${roi}</td>
+            <td>${createdAt}</td>
+            <td>
+                <button class="btn btn-sm btn-outline-primary" onclick="viewRequirement(${req.id || 0})">
+                    <i class="fas fa-eye"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteRequirement(${req.id || 0})">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+    
+    // 添加统计信息
+    const statsRow = document.createElement('tr');
+    statsRow.innerHTML = `<td colspan="9" class="text-end"><strong>总计: ${requirements.length} 条记录</strong></td>`;
+    tbody.appendChild(statsRow);
+}
+
+function escapeHtml(text) {
+    if (typeof text !== 'string') {
+        text = String(text || '');
+    }
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+}
+
+function getCategoryText(category) {
+    if (!category) return '-';
+    const categories = {
+        'functional': '功能',
+        'non-functional': '非功能',
+        'business': '业务',
+        'user': '用户'
+    };
+    return categories[category] || category;
+}
+
+function getPriorityText(priority) {
+    if (!priority) return '中';
+    const priorities = {
+        'high': '高',
+        'medium': '中',
+        'low': '低'
+    };
+    return priorities[priority] || priority;
+}
+
+function getStatusText(status) {
+    if (!status) return '已收集';
+    const statuses = {
+        'collected': '已收集',
+        'analyzing': '分析中',
+        'confirmed': '已确认',
+        'rejected': '已拒绝',
+        'completed': '已完成'
+    };
+    return statuses[status] || status;
+}
+
+function getPriorityBadgeColor(priority) {
+    if (!priority) return 'secondary';
+    if (priority === 'high') return 'danger';
+    if (priority === 'medium') return 'warning';
+    if (priority === 'low') return 'success';
+    return 'secondary';
+}
+
+function getStatusBadgeColor(status) {
+    if (!status) return 'info';
+    if (status === 'confirmed') return 'success';
+    if (status === 'rejected') return 'danger';
+    if (status === 'analyzing') return 'warning';
+    if (status === 'completed') return 'primary';
+    return 'info';
+}
+
+// 保存需求 - 修复后的完整函数
+async function saveRequirement() {
+    console.log("开始保存需求");
+    
+    // 收集表单数据
+    const formData = {
+        title: document.getElementById('requirementTitle').value.trim(),
+        description: document.getElementById('requirementDescription').value.trim(),
+        source: document.getElementById('requirementSource').value,
+        category: document.getElementById('requirementCategory').value,
+        priority: document.getElementById('requirementPriority').value,
+        acceptance_criteria: document.getElementById('requirementCriteria').value.trim(),
+        estimated_business_value: parseInt(document.getElementById('estimatedBusinessValue').value) || 5,
+        estimated_user_value: parseInt(document.getElementById('estimatedUserValue').value) || 5,
+        estimated_technical_value: parseInt(document.getElementById('estimatedTechnicalValue').value) || 5,
+        estimated_effort: parseInt(document.getElementById('estimatedEffort').value) || 1,
+        value_assessor: document.getElementById('valueAssessor').value.trim()
+    };
+    
+    console.log('准备发送的数据:', formData);
+    
+    // 验证必要字段
+    if (!formData.title || !formData.description) {
+        alert('请填写需求标题和描述');
+        return;
+    }
+    
+    // 确保工作量不为0
+    if (formData.estimated_effort <= 0) {
+        formData.estimated_effort = 1;
+    }
+    
+    try {
+        const response = await fetch(`/api/requirements/{{ project.id }}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache',
+                'Expires': '0'
+            },
+            body: JSON.stringify(formData)
+        });
+        
+        console.log('服务器响应状态:', response.status);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        console.log('服务器响应数据:', result);
+        
+        if (result.success) {
+            // 关闭模态框
+            const modalElement = document.getElementById('addRequirementModal');
+            if (modalElement) {
+                const modal = bootstrap.Modal.getInstance(modalElement);
+                if (modal) {
+                    modal.hide();
+                } else {
+                    // 如果没有实例，手动隐藏
+                    modalElement.classList.remove('show');
+                    modalElement.style.display = 'none';
+                    document.body.classList.remove('modal-open');
+                    const backdrop = document.querySelector('.modal-backdrop');
+                    if (backdrop) backdrop.remove();
+                }
+            }
+            
+            // 清空表单
+            document.getElementById('requirementForm').reset();
+            
+            // 重置滑块显示
+            updateValueDisplays();
+            
+            // 刷新需求列表
+            setTimeout(() => {
+                loadRequirements();
+            }, 500);
+            
+            alert('需求添加成功');
+        } else {
+            const errorMessage = result.error || '未知错误';
+            alert('保存失败: ' + errorMessage);
+            console.error('保存失败:', errorMessage);
+        }
+    } catch (error) {
+        console.error('保存需求失败:', error);
+        alert('保存失败: ' + error.message);
+    }
+}
+
+// 实时计算和显示ROI
+function updateValueDisplays() {
+    // 更新滑块显示
+    const businessValue = document.getElementById('estimatedBusinessValue');
+    const userValue = document.getElementById('estimatedUserValue');
+    const technicalValue = document.getElementById('estimatedTechnicalValue');
+    const effort = document.getElementById('estimatedEffort');
+    
+    if (businessValue) document.getElementById('businessValueDisplay').textContent = businessValue.value + '分';
+    if (userValue) document.getElementById('userValueDisplay').textContent = userValue.value + '分';
+    if (technicalValue) document.getElementById('technicalValueDisplay').textContent = technicalValue.value + '分';
+    if (effort) document.getElementById('effortDisplay').textContent = effort.value + '分';
+    
+    // 计算ROI
+    const businessVal = parseInt(businessValue?.value) || 0;
+    const userVal = parseInt(userValue?.value) || 0;
+    const technicalVal = parseInt(technicalValue?.value) || 0;
+    const effortVal = parseInt(effort?.value) || 1; // 避免除零
+    
+    const totalValue = businessVal + userVal + technicalVal;
+    const roi = (totalValue / effortVal).toFixed(2);
+    
+    const roiDisplay = document.getElementById('roiDisplay');
+    if (roiDisplay) roiDisplay.textContent = roi;
+}
+
+// 查看需求详情
+function viewRequirement(id) {
+    if (id && id > 0) {
+        console.log('查看需求:', id);
+        alert('查看需求功能开发中，ID: ' + id);
+    }
+}
+
+// 删除需求
+function deleteRequirement(id) {
+    if (id && id > 0) {
+        alert('删除需求功能开发中，ID: ' + id);
+    }
+}
+
+// 数据诊断功能
+async function diagnoseData() {
+    const debugInfo = document.getElementById('debugInfo');
+    debugInfo.innerHTML = '<p>正在诊断数据问题...</p>';
+    
+    try {
+        const response = await fetch(`/api/diagnose/requirements/{{ project.id }}`);
+        const data = await response.json();
+        
+        if (data.success) {
+            const diagnosis = data.diagnosis;
+            let html = `
+                <h6>数据诊断结果:</h6>
+                <p><strong>项目ID:</strong> ${diagnosis.project_id}</p>
+                <p><strong>项目名称:</strong> ${diagnosis.project_name}</p>
+                <p><strong>数据库总需求数量:</strong> ${diagnosis.total_requirements}</p>
+                <p><strong>正确属于该项目的需求数量:</strong> ${diagnosis.correct_requirements_count}</p>
+                <p><strong>project_id不正确的需求数量:</strong> ${diagnosis.incorrect_requirements_count}</p>
+                <p><strong>孤儿需求数量:</strong> ${diagnosis.orphaned_requirements_count}</p>
+                <p><strong>可能属于该项目的需求数量:</strong> ${diagnosis.potential_requirements_count}</p>
+            `;
+            
+            if (diagnosis.potential_requirements.length > 0) {
+                html += '<p class="text-warning"><strong>发现可能属于该项目但project_id不正确的需求:</strong></p><ul>';
+                diagnosis.potential_requirements.forEach(req => {
+                    html += `<li>ID: ${req.id}, 标题: ${req.title}, 当前ProjectID: ${req.project_id}</li>`;
+                });
+                html += '</ul>';
+                html += '<button class="btn btn-sm btn-danger" onclick="fixData()">尝试修复数据</button>';
+            }
+            
+            debugInfo.innerHTML = html;
+        } else {
+            debugInfo.innerHTML = `<p class="text-danger"><strong>诊断失败:</strong> ${data.error}</p>`;
+        }
+    } catch (error) {
+        debugInfo.innerHTML = `<p class="text-danger"><strong>诊断错误:</strong> ${error.message}</p>`;
+        console.error('诊断数据时出错:', error);
+    }
+}
+
+// 数据修复功能（示例）
+async function fixData() {
+    if (confirm('确定要尝试修复数据吗？这将把可能属于该项目的需求的project_id设置为当前项目ID。')) {
+        const debugInfo = document.getElementById('debugInfo');
+        debugInfo.innerHTML = '<p>正在尝试修复数据...</p>';
+        
+        // 这里应该调用一个后端修复API
+        // 为简化起见，我们只显示提示信息
+        debugInfo.innerHTML = '<p class="text-warning">数据修复功能需要在后端实现。请联系系统管理员或开发人员。</p>';
+    }
+}
+
+</script>
+{% endblock %}

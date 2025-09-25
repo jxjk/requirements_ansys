@@ -1,0 +1,250 @@
+{% extends "base.html" %}
+
+{% block title %}{{ project.name }} - 干系人管理{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('index') }}">项目</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('project_detail', project_id=project.id) }}">{{ project.name }}</a></li>
+                <li class="breadcrumb-item active">干系人管理</li>
+            </ol>
+        </nav>
+        
+        <div class="d-flex justify-content-between align-items-center">
+            <h2><i class="fas fa-users me-2"></i>干系人管理</h2>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addStakeholderModal">
+                <i class="fas fa-plus me-1"></i>添加干系人
+            </button>
+        </div>
+        <p class="text-muted">识别和分析项目利益相关者 - "听清楚"的第一步</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">干系人列表</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover" id="stakeholdersTable">
+                        <thead>
+                            <tr>
+                                <th>姓名</th>
+                                <th>角色</th>
+                                <th>影响力</th>
+                                <th>关注度</th>
+                                <th>联系方式</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stakeholdersBody">
+                            <!-- 通过JavaScript动态加载 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">干系人分析矩阵</h5>
+            </div>
+            <div class="card-body">
+                <div id="stakeholderMatrix" class="stakeholder-matrix">
+                    <canvas id="matrixChart" width="400" height="400"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加干系人模态框 -->
+<div class="modal fade" id="addStakeholderModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">添加干系人</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="stakeholderForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="stakeholderName" class="form-label">姓名 *</label>
+                                <input type="text" class="form-control" id="stakeholderName" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="stakeholderRole" class="form-label">角色</label>
+                                <input type="text" class="form-control" id="stakeholderRole">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="stakeholderInfluence" class="form-label">影响力 (1-5分)</label>
+                                <select class="form-select" id="stakeholderInfluence">
+                                    <option value="1">1 - 很低</option>
+                                    <option value="2">2 - 较低</option>
+                                    <option value="3" selected>3 - 中等</option>
+                                    <option value="4">4 - 较高</option>
+                                    <option value="5">5 - 很高</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="stakeholderInterest" class="form-label">关注度 (1-5分)</label>
+                                <select class="form-select" id="stakeholderInterest">
+                                    <option value="1">1 - 很低</option>
+                                    <option value="2">2 - 较低</option>
+                                    <option value="3" selected>3 - 中等</option>
+                                    <option value="4">4 - 较高</option>
+                                    <option value="5">5 - 很高</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="stakeholderRequirements" class="form-label">需求/期望</label>
+                        <textarea class="form-control" id="stakeholderRequirements" rows="3" placeholder="干系人提出的原始需求和期望"></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="stakeholderContact" class="form-label">联系方式</label>
+                        <input type="text" class="form-control" id="stakeholderContact">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="stakeholderNotes" class="form-label">备注</label>
+                        <textarea class="form-control" id="stakeholderNotes" rows="2"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="saveStakeholder()">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// 页面加载完成后执行
+document.addEventListener('DOMContentLoaded', function() {
+    loadStakeholders();
+});
+
+// 加载干系人列表
+async function loadStakeholders() {
+    try {
+        const response = await fetch(`/api/stakeholders/{{ project.id }}`);
+        const stakeholders = await response.json();
+        
+        const tbody = document.getElementById('stakeholdersBody');
+        tbody.innerHTML = '';
+        
+        stakeholders.forEach(stakeholder => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td><strong>${stakeholder.name}</strong></td>
+                <td>${stakeholder.role || '-'}</td>
+                <td>
+                    <span class="badge bg-${getInfluenceBadgeColor(stakeholder.influence)}">
+                        ${'★'.repeat(stakeholder.influence)}${'☆'.repeat(5-stakeholder.influence)}
+                    </span>
+                </td>
+                <td>
+                    <span class="badge bg-${getInterestBadgeColor(stakeholder.interest)}">
+                        ${'★'.repeat(stakeholder.interest)}${'☆'.repeat(5-stakeholder.interest)}
+                    </span>
+                </td>
+                <td>${stakeholder.contact_info || '-'}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary" onclick="editStakeholder(${stakeholder.id})">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteStakeholder(${stakeholder.id})">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    } catch (error) {
+        console.error('加载干系人失败:', error);
+    }
+}
+
+function getInfluenceBadgeColor(influence) {
+    if (influence >= 4) return 'danger';
+    if (influence >= 3) return 'warning';
+    return 'secondary';
+}
+
+function getInterestBadgeColor(interest) {
+    if (interest >= 4) return 'info';
+    if (interest >= 3) return 'primary';
+    return 'secondary';
+}
+
+// 保存干系人
+async function saveStakeholder() {
+    const formData = {
+        name: document.getElementById('stakeholderName').value,
+        role: document.getElementById('stakeholderRole').value,
+        influence: document.getElementById('stakeholderInfluence').value,
+        interest: document.getElementById('stakeholderInterest').value,
+        requirements: document.getElementById('stakeholderRequirements').value,
+        contact_info: document.getElementById('stakeholderContact').value,
+        notes: document.getElementById('stakeholderNotes').value
+    };
+    
+    if (!formData.name) {
+        alert('请输入干系人姓名');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/stakeholders/{{ project.id }}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // 关闭模态框并刷新列表
+            bootstrap.Modal.getInstance(document.getElementById('addStakeholderModal')).hide();
+            document.getElementById('stakeholderForm').reset();
+            loadStakeholders();
+            
+            RequirementsAnalyst.showToast('干系人添加成功', 'success');
+        }
+    } catch (error) {
+        console.error('保存干系人失败:', error);
+        RequirementsAnalyst.showToast('保存失败', 'danger');
+    }
+}
+</script>
+{% endblock %}

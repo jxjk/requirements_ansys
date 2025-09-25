@@ -1,0 +1,151 @@
+<!-- templates/index.html - 添加项目删除功能 -->
+{% extends "base.html" %}
+
+{% block title %}项目列表{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2><i class="fas fa-project-diagram me-2"></i>项目列表</h2>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createProjectModal">
+                <i class="fas fa-plus me-1"></i>创建项目
+            </button>
+        </div>
+        <p class="text-muted">"想明白" - 项目需求分析系统</p>
+    </div>
+</div>
+
+<div class="row">
+    {% if projects %}
+        {% for project in projects %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">{{ project.name }}</h5>
+                    <p class="card-text">{{ project.description or '暂无描述' }}</p>
+                    <p class="text-muted small">
+                        <i class="fas fa-calendar-alt me-1"></i>
+                        创建于: {{ project.created_at.strftime('%Y-%m-%d') if project.created_at else '未知' }}
+                    </p>
+                </div>
+                <div class="card-footer">
+                    <div class="btn-group w-100" role="group">
+                        <a href="{{ url_for('project_detail', project_id=project.id) }}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-eye me-1"></i>查看
+                        </a>
+                        <button class="btn btn-outline-danger btn-sm" onclick="deleteProject({{ project.id }}, '{{ project.name }}')">
+                            <i class="fas fa-trash me-1"></i>删除
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="col-12">
+            <div class="text-center py-5">
+                <i class="fas fa-folder-open fa-3x text-muted mb-3"></i>
+                <h4 class="text-muted">暂无项目</h4>
+                <p class="text-muted">点击"创建项目"按钮开始创建新项目</p>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<!-- 创建项目模态框 -->
+<div class="modal fade" id="createProjectModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">创建新项目</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('create_project') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="projectName" class="form-label">项目名称 *</label>
+                        <input type="text" class="form-control" id="projectName" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="projectDescription" class="form-label">项目描述</label>
+                        <textarea class="form-control" id="projectDescription" name="description" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">创建</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 删除确认模态框 -->
+<div class="modal fade" id="deleteProjectModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">确认删除项目</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>您确定要删除项目 "<strong id="projectNameToDelete"></strong>" 吗？</p>
+                <p class="text-danger">
+                    <i class="fas fa-exclamation-triangle me-1"></i>
+                    此操作将永久删除项目及其所有相关数据（需求、干系人、里程碑等），且无法恢复！
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">确认删除</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let projectIdToDelete = null;
+
+function deleteProject(projectId, projectName) {
+    projectIdToDelete = projectId;
+    document.getElementById('projectNameToDelete').textContent = projectName;
+    const deleteModal = new bootstrap.Modal(document.getElementById('deleteProjectModal'));
+    deleteModal.show();
+}
+
+document.getElementById('confirmDeleteBtn').addEventListener('click', async function() {
+    if (!projectIdToDelete) return;
+    
+    try {
+        const response = await fetch(`/project/${projectIdToDelete}/delete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // 关闭模态框
+            const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteProjectModal'));
+            deleteModal.hide();
+            
+            // 显示成功消息
+            alert('项目删除成功');
+            
+            // 重新加载页面
+            location.reload();
+        } else {
+            alert('删除项目失败: ' + (result.error || '未知错误'));
+        }
+    } catch (error) {
+        console.error('删除项目时出错:', error);
+        alert('删除项目时发生错误: ' + error.message);
+    }
+});
+</script>
+{% endblock %}

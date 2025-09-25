@@ -1,0 +1,361 @@
+{% extends "base.html" %}
+
+{% block title %}{{ project.name }} - 路线图规划{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('index') }}">项目</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('project_detail', project_id=project.id) }}">{{ project.name }}</a></li>
+                <li class="breadcrumb-item active">路线图规划</li>
+            </ol>
+        </nav>
+        
+        <div class="d-flex justify-content-between align-items-center">
+            <h2><i class="fas fa-road me-2"></i>路线图规划</h2>
+            <div>
+                <a href="{{ url_for('requirement_analysis', project_id=project.id) }}" class="btn btn-outline-primary me-2">
+                    <i class="fas fa-arrow-left me-1"></i>返回分析
+                </a>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addMilestoneModal">
+                    <i class="fas fa-plus me-1"></i>添加里程碑
+                </button>
+            </div>
+        </div>
+        <p class="text-muted">"定节奏" - 制定发布计划和里程碑</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">项目路线图</h5>
+            </div>
+            <div class="card-body">
+                <div id="roadmapTimeline">
+                    {% for milestone in milestones %}
+                    <div class="timeline-item mb-4">
+                        <div class="d-flex">
+                            <div class="timeline-badge me-3">
+                                <span class="badge bg-{{ 'success' if milestone.status == 'completed' else 'primary' if milestone.status == 'in-progress' else 'secondary' }}">
+                                    {{ loop.index }}
+                                </span>
+                            </div>
+                            <div class="timeline-content flex-grow-1">
+                                <div class="card">
+                                    <div class="card-header d-flex justify-content-between align-items-center">
+                                        <h6 class="mb-0">{{ milestone.title }}</h6>
+                                        <span class="badge bg-{{ 'success' if milestone.status == 'completed' else 'warning' if milestone.status == 'in-progress' else 'secondary' }}">
+                                            {{ '已完成' if milestone.status == 'completed' else '进行中' if milestone.status == 'in-progress' else '已规划' }}
+                                        </span>
+                                    </div>
+                                    <div class="card-body">
+                                        <p class="card-text">{{ milestone.description or '暂无描述' }}</p>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <small class="text-muted">
+                                                截止日期: {{ milestone.deadline.strftime('%Y年%m月%d日') if milestone.deadline else '未设置' }}
+                                            </small>
+                                            <div>
+                                                <button class="btn btn-sm btn-outline-primary" onclick="editMilestone({{ milestone.id }})">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-danger" onclick="deleteMilestone({{ milestone.id }})">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        {% if milestone.requirements %}
+                                        <div class="mt-2">
+                                            <small class="text-muted">关联需求:</small>
+                                            <div class="mt-1">
+                                                {% set req_ids = milestone.requirements.split(',') %}
+                                                {% for requirement in requirements %}
+                                                    {% if requirement.id|string in req_ids %}
+                                                    <span class="badge bg-light text-dark me-1">{{ requirement.title }}</span>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4 text-muted">
+                        <i class="fas fa-road fa-3x mb-3"></i>
+                        <p>暂无里程碑规划</p>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addMilestoneModal">
+                            添加第一个里程碑
+                        </button>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">需求分配</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>需求标题</th>
+                                <th>优先级</th>
+                                <th>状态</th>
+                                <th>分配到的里程碑</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for requirement in requirements %}
+                            <tr>
+                                <td>
+                                    <strong>{{ requirement.title }}</strong>
+                                    {% if requirement.description %}
+                                    <br><small class="text-muted">{{ requirement.description[:80] }}{% if requirement.description|length > 80 %}...{% endif %}</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ 'danger' if requirement.priority == 'high' else 'warning' if requirement.priority == 'medium' else 'success' }}">
+                                        {{ '高' if requirement.priority == 'high' else '中' if requirement.priority == 'medium' else '低' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if requirement.status == 'confirmed' else 'warning' if requirement.status == 'analyzing' else 'info' if requirement.status == 'collected' else 'danger' }}">
+                                        {{ '已确认' if requirement.status == 'confirmed' else '分析中' if requirement.status == 'analyzing' else '已收集' if requirement.status == 'collected' else '已拒绝' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <select class="form-select form-select-sm" onchange="assignRequirementToMilestone({{ requirement.id }}, this.value)">
+                                        <option value="">未分配</option>
+                                        {% for milestone in milestones %}
+                                        <option value="{{ milestone.id }}" 
+                                            {% if milestone.requirements %}
+                                                {% set req_ids = milestone.requirements.split(',') %}
+                                                {% if requirement.id|string in req_ids %}selected{% endif %}
+                                            {% endif %}>
+                                            {{ milestone.title }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="viewRequirement({{ requirement.id }})">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-4">
+                                    <i class="fas fa-inbox fa-2x mb-2"></i>
+                                    <p>暂无需求数据</p>
+                                    <a href="{{ url_for('requirement_collection', project_id=project.id) }}" class="btn btn-sm btn-primary">
+                                        去采集需求
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加里程碑模态框 -->
+<div class="modal fade" id="addMilestoneModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">添加里程碑</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="milestoneForm">
+                    <div class="mb-3">
+                        <label for="milestoneTitle" class="form-label">里程碑标题 *</label>
+                        <input type="text" class="form-control" id="milestoneTitle" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="milestoneDescription" class="form-label">描述</label>
+                        <textarea class="form-control" id="milestoneDescription" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="milestoneDeadline" class="form-label">截止日期 *</label>
+                        <input type="date" class="form-control" id="milestoneDeadline" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">关联需求</label>
+                        <div class="border p-2" style="max-height: 200px; overflow-y: auto;">
+                            {% for requirement in requirements %}
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="{{ requirement.id }}" id="req{{ requirement.id }}">
+                                <label class="form-check-label" for="req{{ requirement.id }}">
+                                    {{ requirement.title }}
+                                    <span class="badge bg-{{ 'danger' if requirement.priority == 'high' else 'warning' if requirement.priority == 'medium' else 'success' }} ms-1">
+                                        {{ requirement.priority }}
+                                    </span>
+                                </label>
+                            </div>
+                            {% else %}
+                            <p class="text-muted small">暂无需求可供分配</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="saveMilestone()">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// 设置默认截止日期为明天
+document.addEventListener('DOMContentLoaded', function() {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    document.getElementById('milestoneDeadline').valueAsDate = tomorrow;
+});
+
+async function saveMilestone() {
+    const selectedRequirements = [];
+    document.querySelectorAll('#milestoneForm input[type="checkbox"]:checked').forEach(checkbox => {
+        selectedRequirements.push(parseInt(checkbox.value));
+    });
+    
+    const formData = {
+        title: document.getElementById('milestoneTitle').value,
+        description: document.getElementById('milestoneDescription').value,
+        deadline: document.getElementById('milestoneDeadline').value,
+        requirements: selectedRequirements
+    };
+    
+    if (!formData.title || !formData.deadline) {
+        alert('请填写里程碑标题和截止日期');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/milestones/{{ project.id }}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // 关闭模态框并刷新页面
+            bootstrap.Modal.getInstance(document.getElementById('addMilestoneModal')).hide();
+            document.getElementById('milestoneForm').reset();
+            
+            // 重新设置默认日期
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            document.getElementById('milestoneDeadline').valueAsDate = tomorrow;
+            
+            location.reload();
+            
+            RequirementsAnalyst.showToast('里程碑添加成功', 'success');
+        }
+    } catch (error) {
+        console.error('保存里程碑失败:', error);
+        RequirementsAnalyst.showToast('保存失败', 'danger');
+    }
+}
+
+function editMilestone(milestoneId) {
+    RequirementsAnalyst.showToast('编辑功能开发中', 'info');
+    // 后续可以实现在模态框中编辑里程碑的功能
+}
+
+function deleteMilestone(milestoneId) {
+    if (confirm('确定要删除这个里程碑吗？')) {
+        RequirementsAnalyst.showToast('删除功能开发中', 'info');
+        // 后续可以实现删除里程碑的API调用
+    }
+}
+
+async function assignRequirementToMilestone(requirementId, milestoneId) {
+    try {
+        // 这里需要实现需求分配到里程碑的API
+        const response = await fetch(`/api/requirements/${requirementId}/assign`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ milestone_id: milestoneId || null })
+        });
+        
+        if (response.ok) {
+            RequirementsAnalyst.showToast('分配成功', 'success');
+        } else {
+            RequirementsAnalyst.showToast('分配失败', 'danger');
+        }
+    } catch (error) {
+        console.error('分配需求失败:', error);
+        RequirementsAnalyst.showToast('分配功能开发中', 'info');
+    }
+}
+
+function viewRequirement(requirementId) {
+    // 后续可以实现查看需求详情的功能
+    RequirementsAnalyst.showToast('查看详情功能开发中', 'info');
+}
+</script>
+
+<style>
+.timeline-item {
+    position: relative;
+}
+
+.timeline-item::before {
+    content: '';
+    position: absolute;
+    left: 19px;
+    top: 30px;
+    bottom: -20px;
+    width: 2px;
+    background-color: #dee2e6;
+}
+
+.timeline-item:last-child::before {
+    display: none;
+}
+
+.timeline-badge {
+    z-index: 1;
+}
+
+.timeline-content .card {
+    border-left: 4px solid #007bff;
+}
+
+.timeline-content .card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+</style>
+{% endblock %}
