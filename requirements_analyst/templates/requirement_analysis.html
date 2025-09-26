@@ -117,6 +117,7 @@
                                         <option value="analyzing" {% if requirement.status == 'analyzing' %}selected{% endif %}>分析中</option>
                                         <option value="confirmed" {% if requirement.status == 'confirmed' %}selected{% endif %}>已确认</option>
                                         <option value="rejected" {% if requirement.status == 'rejected' %}selected{% endif %}>已拒绝</option>
+                                        <option value="completed" {% if requirement.status == 'completed' %}selected{% endif %}>已完成</option>
                                     </select>
                                 </td>
                                 <td>
@@ -212,6 +213,129 @@ async function updateRequirementStatus(requirementId, status) {
         console.error('更新状态失败:', error);
         RequirementsAnalyst.showToast('更新失败', 'danger');
     }
+}
+
+// 查看需求详情
+async function viewRequirement(requirementId) {
+    try {
+        const response = await fetch(`/api/requirements/detail/${requirementId}`);
+        const requirement = await response.json();
+        
+        if (requirement) {
+            // 创建详情模态框
+            let modalHtml = `
+            <div class="modal fade" id="requirementDetailModal" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">需求详情</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6>基本信息</h6>
+                                    <p><strong>标题:</strong> ${escapeHtml(requirement.title)}</p>
+                                    <p><strong>来源:</strong> ${escapeHtml(requirement.source || '未指定')}</p>
+                                    <p><strong>类别:</strong> ${getCategoryText(requirement.category)}</p>
+                                    <p><strong>优先级:</strong> ${getPriorityText(requirement.priority)}</p>
+                                    <p><strong>状态:</strong> ${getStatusText(requirement.status)}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>价值评估</h6>
+                                    <p><strong>业务价值:</strong> ${requirement.estimated_business_value || 0}/10</p>
+                                    <p><strong>用户价值:</strong> ${requirement.estimated_user_value || 0}/10</p>
+                                    <p><strong>技术价值:</strong> ${requirement.estimated_technical_value || 0}/10</p>
+                                    <p><strong>工作量:</strong> ${requirement.estimated_effort || 0}/10</p>
+                                    <p><strong>预估ROI:</strong> ${(requirement.estimated_roi || 0).toFixed(2)}</p>
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <h6>需求描述</h6>
+                                    <p>${escapeHtml(requirement.description || '')}</p>
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <h6>验收标准</h6>
+                                    <p>${escapeHtml(requirement.acceptance_criteria || '暂无')}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            `;
+            
+            // 添加到页面
+            const modalContainer = document.createElement('div');
+            modalContainer.innerHTML = modalHtml;
+            document.body.appendChild(modalContainer);
+            
+            // 显示模态框
+            const modal = new bootstrap.Modal(document.getElementById('requirementDetailModal'));
+            modal.show();
+            
+            // 模态框关闭后清理
+            document.getElementById('requirementDetailModal').addEventListener('hidden.bs.modal', function () {
+                document.body.removeChild(modalContainer);
+            });
+        }
+    } catch (error) {
+        console.error('查看需求详情失败:', error);
+        RequirementsAnalyst.showToast('加载失败', 'danger');
+    }
+}
+
+function escapeHtml(text) {
+    if (typeof text !== 'string') {
+        text = String(text || '');
+    }
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+}
+
+function getCategoryText(category) {
+    if (!category) return '-';
+    const categories = {
+        'functional': '功能',
+        'non-functional': '非功能',
+        'business': '业务',
+        'user': '用户'
+    };
+    return categories[category] || category;
+}
+
+function getPriorityText(priority) {
+    if (!priority) return '中';
+    const priorities = {
+        'high': '高',
+        'medium': '中',
+        'low': '低'
+    };
+    return priorities[priority] || priority;
+}
+
+function getStatusText(status) {
+    if (!status) return '已收集';
+    const statuses = {
+        'collected': '已收集',
+        'analyzing': '分析中',
+        'confirmed': '已确认',
+        'rejected': '已拒绝',
+        'completed': '已完成'
+    };
+    return statuses[status] || status;
 }
 </script>
 {% endblock %}

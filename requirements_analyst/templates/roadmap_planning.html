@@ -1,361 +1,671 @@
-{% extends "base.html" %}
+<!-- templates/roadmap_planning.html -->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ project.name }} - 路线图规划</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .timeline {
+            position: relative;
+            padding: 20px 0;
+        }
+        .timeline::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background-color: #007bff;
+            left: 50%;
+            margin-left: -2px;
+        }
+        .milestone-card {
+            margin-bottom: 20px;
+            position: relative;
+        }
+        .milestone-card:nth-child(odd) {
+            padding-right: calc(50% + 30px);
+            text-align: right;
+        }
+        .milestone-card:nth-child(even) {
+            padding-left: calc(50% + 30px);
+        }
+        .milestone-marker {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background-color: #007bff;
+            border-radius: 50%;
+            top: 20px;
+            left: 50%;
+            margin-left: -10px;
+            z-index: 1;
+        }
+        .milestone-content {
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .requirement-item {
+            cursor: move;
+            margin-bottom: 5px;
+        }
+        .drag-over {
+            border: 2px dashed #007bff;
+            background-color: #f8f9fa;
+        }
+        .priority-high { border-left: 4px solid #dc3545; }
+        .priority-medium { border-left: 4px solid #ffc107; }
+        .priority-low { border-left: 4px solid #28a745; }
+        .status-completed { opacity: 0.7; }
+        .stats-card {
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .requirement-select {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('index') }}">需求分析系统</a>
+            <div class="navbar-nav">
+                <a class="nav-link" href="{{ url_for('project_detail', project_id=project.id) }}">项目概览</a>
+                <a class="nav-link" href="{{ url_for('stakeholder_management', project_id=project.id) }}">干系人管理</a>
+                <a class="nav-link" href="{{ url_for('requirement_collection', project_id=project.id) }}">需求采集</a>
+                <a class="nav-link" href="{{ url_for('requirement_analysis', project_id=project.id) }}">需求分析</a>
+                <a class="nav-link active" href="{{ url_for('roadmap_planning', project_id=project.id) }}">路线图规划</a>
+                <a class="nav-link" href="{{ url_for('kanban_view', project_id=project.id) }}">看板视图</a>
+                <a class="nav-link" href="{{ url_for('value_assessment', project_id=project.id) }}">价值评估</a>
+            </div>
+        </div>
+    </nav>
 
-{% block title %}{{ project.name }} - 路线图规划{% endblock %}
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <div class="col-md-12">
+                <h2>{{ project.name }} - 路线图规划</h2>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="{{ url_for('index') }}">项目列表</a></li>
+                        <li class="breadcrumb-item"><a href="{{ url_for('project_detail', project_id=project.id) }}">{{ project.name }}</a></li>
+                        <li class="breadcrumb-item active">路线图规划</li>
+                    </ol>
+                </nav>
+            </div>
+        </div>
 
-{% block content %}
-<div class="row mb-4">
-    <div class="col-12">
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="{{ url_for('index') }}">项目</a></li>
-                <li class="breadcrumb-item"><a href="{{ url_for('project_detail', project_id=project.id) }}">{{ project.name }}</a></li>
-                <li class="breadcrumb-item active">路线图规划</li>
-            </ol>
-        </nav>
-        
-        <div class="d-flex justify-content-between align-items-center">
-            <h2><i class="fas fa-road me-2"></i>路线图规划</h2>
-            <div>
-                <a href="{{ url_for('requirement_analysis', project_id=project.id) }}" class="btn btn-outline-primary me-2">
-                    <i class="fas fa-arrow-left me-1"></i>返回分析
-                </a>
+        <div class="row mb-3">
+            <div class="col-md-12">
                 <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addMilestoneModal">
-                    <i class="fas fa-plus me-1"></i>添加里程碑
+                    <i class="bi bi-plus-circle"></i> 添加里程碑
+                </button>
+                <button class="btn btn-secondary" id="refreshBtn">
+                    <i class="bi bi-arrow-clockwise"></i> 刷新
                 </button>
             </div>
         </div>
-        <p class="text-muted">"定节奏" - 制定发布计划和里程碑</p>
-    </div>
-</div>
 
-<div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">项目路线图</h5>
+        <!-- 统计信息 -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="stats-card">
+                    <h5>总需求</h5>
+                    <h3>{{ requirements|length }}</h3>
+                </div>
             </div>
-            <div class="card-body">
-                <div id="roadmapTimeline">
-                    {% for milestone in milestones %}
-                    <div class="timeline-item mb-4">
-                        <div class="d-flex">
-                            <div class="timeline-badge me-3">
-                                <span class="badge bg-{{ 'success' if milestone.status == 'completed' else 'primary' if milestone.status == 'in-progress' else 'secondary' }}">
-                                    {{ loop.index }}
-                                </span>
-                            </div>
-                            <div class="timeline-content flex-grow-1">
-                                <div class="card">
-                                    <div class="card-header d-flex justify-content-between align-items-center">
-                                        <h6 class="mb-0">{{ milestone.title }}</h6>
-                                        <span class="badge bg-{{ 'success' if milestone.status == 'completed' else 'warning' if milestone.status == 'in-progress' else 'secondary' }}">
-                                            {{ '已完成' if milestone.status == 'completed' else '进行中' if milestone.status == 'in-progress' else '已规划' }}
-                                        </span>
+            <div class="col-md-3">
+                <div class="stats-card">
+                    <h5>里程碑数</h5>
+                    <h3>{{ milestones|length }}</h3>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card">
+                    <h5>已规划需求</h5>
+                    <h3 id="plannedCount">0</h3>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card">
+                    <h5>未规划需求</h5>
+                    <h3 id="unplannedCount">0</h3>
+                </div>
+            </div>
+        </div>
+
+        <!-- 时间线视图 -->
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">路线图时间线</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if milestones %}
+                        <div class="timeline">
+                            {% for milestone in milestones %}
+                            <div class="milestone-card">
+                                <div class="milestone-marker"></div>
+                                <div class="milestone-content bg-light">
+                                    <h5>{{ milestone.title }}</h5>
+                                    <p><small class="text-muted">{{ milestone.description }}</small></p>
+                                    <p><strong>截止日期:</strong> {{ milestone.deadline.strftime('%Y-%m-%d') if milestone.deadline else '未设置' }}</p>
+                                    <p><strong>状态:</strong> 
+                                        {% if milestone.status == 'planned' %}已计划
+                                        {% elif milestone.status == 'in_progress' %}进行中
+                                        {% elif milestone.status == 'completed' %}已完成
+                                        {% else %}未知{% endif %}
+                                    </p>
+                                    <div class="mb-2">
+                                        <strong>关联需求 ({{ milestone_requirements[milestone.id]|length if milestone_requirements[milestone.id] else 0 }}):</strong>
                                     </div>
-                                    <div class="card-body">
-                                        <p class="card-text">{{ milestone.description or '暂无描述' }}</p>
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <small class="text-muted">
-                                                截止日期: {{ milestone.deadline.strftime('%Y年%m月%d日') if milestone.deadline else '未设置' }}
-                                            </small>
-                                            <div>
-                                                <button class="btn btn-sm btn-outline-primary" onclick="editMilestone({{ milestone.id }})">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                                <button class="btn btn-sm btn-outline-danger" onclick="deleteMilestone({{ milestone.id }})">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
+                                    <div class="requirements-list" data-milestone-id="{{ milestone.id }}">
+                                        {% if milestone_requirements[milestone.id] %}
+                                            {% for req in milestone_requirements[milestone.id] %}
+                                            <div class="requirement-item card p-2 mb-1 {{ 'priority-' + req.priority }} {{ 'status-' + req.status if req.status == 'completed' else '' }}" 
+                                                 draggable="true" data-req-id="{{ req.id }}">
+                                                <div class="d-flex justify-content-between">
+                                                    <span>{{ req.title }}</span>
+                                                    <span class="badge bg-secondary">{{ req.priority }}</span>
+                                                </div>
                                             </div>
-                                        </div>
-                                        {% if milestone.requirements %}
-                                        <div class="mt-2">
-                                            <small class="text-muted">关联需求:</small>
-                                            <div class="mt-1">
-                                                {% set req_ids = milestone.requirements.split(',') %}
-                                                {% for requirement in requirements %}
-                                                    {% if requirement.id|string in req_ids %}
-                                                    <span class="badge bg-light text-dark me-1">{{ requirement.title }}</span>
-                                                    {% endif %}
-                                                {% endfor %}
-                                            </div>
-                                        </div>
+                                            {% endfor %}
+                                        {% else %}
+                                            <div class="text-muted">暂无关联需求</div>
                                         {% endif %}
                                     </div>
+                                    <div class="mt-2">
+                                        <button class="btn btn-sm btn-outline-primary edit-milestone" data-milestone-id="{{ milestone.id }}">
+                                            <i class="bi bi-pencil"></i> 编辑
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger delete-milestone" data-milestone-id="{{ milestone.id }}">
+                                            <i class="bi bi-trash"></i> 删除
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="text-center py-5">
+                            <i class="bi bi-calendar3 display-4 text-muted"></i>
+                            <p class="mt-3">暂无里程碑，请添加第一个里程碑</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- 需求池 -->
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">需求池</h5>
+                    </div>
+                    <div class="card-body">
+                        <ul class="nav nav-tabs" id="requirementTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="confirmed-tab" data-bs-toggle="tab" data-bs-target="#confirmed" type="button">已确认</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="analyzing-tab" data-bs-toggle="tab" data-bs-target="#analyzing" type="button">分析中</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="collected-tab" data-bs-toggle="tab" data-bs-target="#collected" type="button">已收集</button>
+                            </li>
+                        </ul>
+                        <div class="tab-content mt-3" id="requirementTabsContent">
+                            <div class="tab-pane fade show active" id="confirmed" role="tabpanel">
+                                <div class="requirements-pool" id="confirmed-requirements" data-status="confirmed">
+                                    {% for req in status_groups['confirmed'] %}
+                                    <div class="requirement-item card p-2 mb-2 {{ 'priority-' + req.priority }}" 
+                                         draggable="true" data-req-id="{{ req.id }}">
+                                        <div class="d-flex justify-content-between">
+                                            <span>{{ req.title }}</span>
+                                            <span class="badge bg-secondary">{{ req.priority }}</span>
+                                        </div>
+                                        <small class="text-muted">{{ req.description[:50] }}{% if req.description|length > 50 %}...{% endif %}</small>
+                                    </div>
+                                    {% else %}
+                                    <div class="text-muted">暂无已确认需求</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="tab-pane fade" id="analyzing" role="tabpanel">
+                                <div class="requirements-pool" id="analyzing-requirements" data-status="analyzing">
+                                    {% for req in status_groups['analyzing'] %}
+                                    <div class="requirement-item card p-2 mb-2 {{ 'priority-' + req.priority }}" 
+                                         draggable="true" data-req-id="{{ req.id }}">
+                                        <div class="d-flex justify-content-between">
+                                            <span>{{ req.title }}</span>
+                                            <span class="badge bg-secondary">{{ req.priority }}</span>
+                                        </div>
+                                        <small class="text-muted">{{ req.description[:50] }}{% if req.description|length > 50 %}...{% endif %}</small>
+                                    </div>
+                                    {% else %}
+                                    <div class="text-muted">暂无分析中需求</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="tab-pane fade" id="collected" role="tabpanel">
+                                <div class="requirements-pool" id="collected-requirements" data-status="collected">
+                                    {% for req in status_groups['collected'] %}
+                                    <div class="requirement-item card p-2 mb-2 {{ 'priority-' + req.priority }}" 
+                                         draggable="true" data-req-id="{{ req.id }}">
+                                        <div class="d-flex justify-content-between">
+                                            <span>{{ req.title }}</span>
+                                            <span class="badge bg-secondary">{{ req.priority }}</span>
+                                        </div>
+                                        <small class="text-muted">{{ req.description[:50] }}{% if req.description|length > 50 %}...{% endif %}</small>
+                                    </div>
+                                    {% else %}
+                                    <div class="text-muted">暂无已收集需求</div>
+                                    {% endfor %}
                                 </div>
                             </div>
                         </div>
                     </div>
-                    {% else %}
-                    <div class="text-center py-4 text-muted">
-                        <i class="fas fa-road fa-3x mb-3"></i>
-                        <p>暂无里程碑规划</p>
-                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addMilestoneModal">
-                            添加第一个里程碑
-                        </button>
-                    </div>
-                    {% endfor %}
                 </div>
             </div>
         </div>
     </div>
-</div>
 
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">需求分配</h5>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>需求标题</th>
-                                <th>优先级</th>
-                                <th>状态</th>
-                                <th>分配到的里程碑</th>
-                                <th>操作</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for requirement in requirements %}
-                            <tr>
-                                <td>
-                                    <strong>{{ requirement.title }}</strong>
-                                    {% if requirement.description %}
-                                    <br><small class="text-muted">{{ requirement.description[:80] }}{% if requirement.description|length > 80 %}...{% endif %}</small>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <span class="badge bg-{{ 'danger' if requirement.priority == 'high' else 'warning' if requirement.priority == 'medium' else 'success' }}">
-                                        {{ '高' if requirement.priority == 'high' else '中' if requirement.priority == 'medium' else '低' }}
-                                    </span>
-                                </td>
-                                <td>
-                                    <span class="badge bg-{{ 'success' if requirement.status == 'confirmed' else 'warning' if requirement.status == 'analyzing' else 'info' if requirement.status == 'collected' else 'danger' }}">
-                                        {{ '已确认' if requirement.status == 'confirmed' else '分析中' if requirement.status == 'analyzing' else '已收集' if requirement.status == 'collected' else '已拒绝' }}
-                                    </span>
-                                </td>
-                                <td>
-                                    <select class="form-select form-select-sm" onchange="assignRequirementToMilestone({{ requirement.id }}, this.value)">
-                                        <option value="">未分配</option>
-                                        {% for milestone in milestones %}
-                                        <option value="{{ milestone.id }}" 
-                                            {% if milestone.requirements %}
-                                                {% set req_ids = milestone.requirements.split(',') %}
-                                                {% if requirement.id|string in req_ids %}selected{% endif %}
-                                            {% endif %}>
-                                            {{ milestone.title }}
-                                        </option>
-                                        {% endfor %}
-                                    </select>
-                                </td>
-                                <td>
-                                    <button class="btn btn-sm btn-outline-primary" onclick="viewRequirement({{ requirement.id }})">
-                                        <i class="fas fa-eye"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                            {% else %}
-                            <tr>
-                                <td colspan="5" class="text-center text-muted py-4">
-                                    <i class="fas fa-inbox fa-2x mb-2"></i>
-                                    <p>暂无需求数据</p>
-                                    <a href="{{ url_for('requirement_collection', project_id=project.id) }}" class="btn btn-sm btn-primary">
-                                        去采集需求
-                                    </a>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+    <!-- 添加里程碑模态框 -->
+    <div class="modal fade" id="addMilestoneModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">添加里程碑</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- 添加里程碑模态框 -->
-<div class="modal fade" id="addMilestoneModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">添加里程碑</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="milestoneForm">
-                    <div class="mb-3">
-                        <label for="milestoneTitle" class="form-label">里程碑标题 *</label>
-                        <input type="text" class="form-control" id="milestoneTitle" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="milestoneDescription" class="form-label">描述</label>
-                        <textarea class="form-control" id="milestoneDescription" rows="3"></textarea>
-                    </div>
-                    <div class="mb-3">
-                        <label for="milestoneDeadline" class="form-label">截止日期 *</label>
-                        <input type="date" class="form-control" id="milestoneDeadline" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">关联需求</label>
-                        <div class="border p-2" style="max-height: 200px; overflow-y: auto;">
-                            {% for requirement in requirements %}
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" value="{{ requirement.id }}" id="req{{ requirement.id }}">
-                                <label class="form-check-label" for="req{{ requirement.id }}">
-                                    {{ requirement.title }}
-                                    <span class="badge bg-{{ 'danger' if requirement.priority == 'high' else 'warning' if requirement.priority == 'medium' else 'success' }} ms-1">
-                                        {{ requirement.priority }}
-                                    </span>
-                                </label>
-                            </div>
-                            {% else %}
-                            <p class="text-muted small">暂无需求可供分配</p>
-                            {% endfor %}
+                <div class="modal-body">
+                    <form id="addMilestoneForm">
+                        <input type="hidden" id="projectId" value="{{ project.id }}">
+                        <div class="mb-3">
+                            <label for="milestoneTitle" class="form-label">标题</label>
+                            <input type="text" class="form-control" id="milestoneTitle" required>
                         </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                <button type="button" class="btn btn-primary" onclick="saveMilestone()">保存</button>
+                        <div class="mb-3">
+                            <label for="milestoneDescription" class="form-label">描述</label>
+                            <textarea class="form-control" id="milestoneDescription" rows="3"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="milestoneDeadline" class="form-label">截止日期</label>
+                            <input type="date" class="form-control" id="milestoneDeadline">
+                        </div>
+                        <div class="mb-3">
+                            <label for="milestoneStatus" class="form-label">状态</label>
+                            <select class="form-select" id="milestoneStatus">
+                                <option value="planned">已计划</option>
+                                <option value="in_progress">进行中</option>
+                                <option value="completed">已完成</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="milestoneRequirements" class="form-label">关联需求</label>
+                            <div class="requirement-select border rounded p-2">
+                                {% for req in requirements %}
+                                <div class="form-check">
+                                    <input class="form-check-input milestone-req-checkbox" type="checkbox" value="{{ req.id }}" id="req_{{ req.id }}">
+                                    <label class="form-check-label" for="req_{{ req.id }}">
+                                        {{ req.title }} <span class="badge bg-secondary">{{ req.priority }}</span>
+                                    </label>
+                                </div>
+                                {% else %}
+                                <div class="text-muted">暂无可用需求</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="saveMilestoneBtn">保存</button>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-{% endblock %}
+    <!-- 编辑里程碑模态框 -->
+    <div class="modal fade" id="editMilestoneModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">编辑里程碑</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editMilestoneForm">
+                        <input type="hidden" id="editMilestoneId">
+                        <div class="mb-3">
+                            <label for="editMilestoneTitle" class="form-label">标题</label>
+                            <input type="text" class="form-control" id="editMilestoneTitle" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editMilestoneDescription" class="form-label">描述</label>
+                            <textarea class="form-control" id="editMilestoneDescription" rows="3"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editMilestoneDeadline" class="form-label">截止日期</label>
+                            <input type="date" class="form-control" id="editMilestoneDeadline">
+                        </div>
+                        <div class="mb-3">
+                            <label for="editMilestoneStatus" class="form-label">状态</label>
+                            <select class="form-select" id="editMilestoneStatus">
+                                <option value="planned">已计划</option>
+                                <option value="in_progress">进行中</option>
+                                <option value="completed">已完成</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editMilestoneRequirements" class="form-label">关联需求</label>
+                            <div class="requirement-select border rounded p-2">
+                                {% for req in requirements %}
+                                <div class="form-check">
+                                    <input class="form-check-input edit-milestone-req-checkbox" type="checkbox" value="{{ req.id }}" id="edit_req_{{ req.id }}">
+                                    <label class="form-check-label" for="edit_req_{{ req.id }}">
+                                        {{ req.title }} <span class="badge bg-secondary">{{ req.priority }}</span>
+                                    </label>
+                                </div>
+                                {% else %}
+                                <div class="text-muted">暂无可用需求</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="updateMilestoneBtn">更新</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-{% block scripts %}
-<script>
-// 设置默认截止日期为明天
-document.addEventListener('DOMContentLoaded', function() {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    document.getElementById('milestoneDeadline').valueAsDate = tomorrow;
-});
-
-async function saveMilestone() {
-    const selectedRequirements = [];
-    document.querySelectorAll('#milestoneForm input[type="checkbox"]:checked').forEach(checkbox => {
-        selectedRequirements.push(parseInt(checkbox.value));
-    });
-    
-    const formData = {
-        title: document.getElementById('milestoneTitle').value,
-        description: document.getElementById('milestoneDescription').value,
-        deadline: document.getElementById('milestoneDeadline').value,
-        requirements: selectedRequirements
-    };
-    
-    if (!formData.title || !formData.deadline) {
-        alert('请填写里程碑标题和截止日期');
-        return;
-    }
-    
-    try {
-        const response = await fetch(`/api/milestones/{{ project.id }}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(formData)
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化统计数据
+            updateStats();
+            
+            // 刷新按钮
+            document.getElementById('refreshBtn').addEventListener('click', function() {
+                location.reload();
+            });
+            
+            // 保存里程碑
+            document.getElementById('saveMilestoneBtn').addEventListener('click', function() {
+                const projectId = document.getElementById('projectId').value;
+                const title = document.getElementById('milestoneTitle').value;
+                const description = document.getElementById('milestoneDescription').value;
+                const deadline = document.getElementById('milestoneDeadline').value;
+                const status = document.getElementById('milestoneStatus').value;
+                
+                // 获取选中的需求
+                const selectedRequirements = [];
+                document.querySelectorAll('.milestone-req-checkbox:checked').forEach(checkbox => {
+                    selectedRequirements.push(parseInt(checkbox.value));
+                });
+                
+                if (!title) {
+                    alert('请输入里程碑标题');
+                    return;
+                }
+                
+                fetch(`/api/milestones/${projectId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        title: title,
+                        description: description,
+                        deadline: deadline,
+                        status: status,
+                        requirements: selectedRequirements
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('里程碑添加成功');
+                        location.reload();
+                    } else {
+                        alert('添加失败: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('添加失败');
+                });
+            });
+            
+            // 编辑里程碑按钮事件
+            document.querySelectorAll('.edit-milestone').forEach(button => {
+                button.addEventListener('click', function() {
+                    const milestoneId = this.getAttribute('data-milestone-id');
+                    fetch(`/api/milestones/{{ project.id }}/${milestoneId}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            document.getElementById('editMilestoneId').value = data.id;
+                            document.getElementById('editMilestoneTitle').value = data.title;
+                            document.getElementById('editMilestoneDescription').value = data.description;
+                            document.getElementById('editMilestoneDeadline').value = data.deadline || '';
+                            document.getElementById('editMilestoneStatus').value = data.status;
+                            
+                            // 清除之前选中的需求
+                            document.querySelectorAll('.edit-milestone-req-checkbox').forEach(checkbox => {
+                                checkbox.checked = false;
+                            });
+                            
+                            // 选中当前里程碑关联的需求
+                            if (data.requirements && Array.isArray(data.requirements)) {
+                                data.requirements.forEach(reqId => {
+                                    const checkbox = document.getElementById(`edit_req_${reqId}`);
+                                    if (checkbox) {
+                                        checkbox.checked = true;
+                                    }
+                                });
+                            }
+                            
+                            new bootstrap.Modal(document.getElementById('editMilestoneModal')).show();
+                        });
+                });
+            });
+            
+            // 更新里程碑
+            document.getElementById('updateMilestoneBtn').addEventListener('click', function() {
+                const milestoneId = document.getElementById('editMilestoneId').value;
+                const title = document.getElementById('editMilestoneTitle').value;
+                const description = document.getElementById('editMilestoneDescription').value;
+                const deadline = document.getElementById('editMilestoneDeadline').value;
+                const status = document.getElementById('editMilestoneStatus').value;
+                
+                // 获取选中的需求
+                const selectedRequirements = [];
+                document.querySelectorAll('.edit-milestone-req-checkbox:checked').forEach(checkbox => {
+                    selectedRequirements.push(parseInt(checkbox.value));
+                });
+                
+                if (!title) {
+                    alert('请输入里程碑标题');
+                    return;
+                }
+                
+                fetch(`/api/milestones/{{ project.id }}/${milestoneId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        title: title,
+                        description: description,
+                        deadline: deadline,
+                        status: status,
+                        requirements: selectedRequirements
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('里程碑更新成功');
+                        location.reload();
+                    } else {
+                        alert('更新失败: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('更新失败');
+                });
+            });
+            
+            // 删除里程碑
+            document.querySelectorAll('.delete-milestone').forEach(button => {
+                button.addEventListener('click', function() {
+                    if (!confirm('确定要删除这个里程碑吗？')) {
+                        return;
+                    }
+                    
+                    const milestoneId = this.getAttribute('data-milestone-id');
+                    fetch(`/api/milestones/{{ project.id }}/${milestoneId}`, {
+                        method: 'DELETE'
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('里程碑删除成功');
+                            location.reload();
+                        } else {
+                            alert('删除失败: ' + data.error);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('删除失败');
+                    });
+                });
+            });
+            
+            // 拖拽功能
+            setupDragAndDrop();
+            
+            // 更新统计数据
+            function updateStats() {
+                const totalRequirements = {{ requirements|length }};
+                let plannedCount = 0;
+                
+                // 计算已规划需求数量
+                {% for milestone in milestones %}
+                    {% if milestone_requirements[milestone.id] %}
+                        plannedCount += {{ milestone_requirements[milestone.id]|length }};
+                    {% endif %}
+                {% endfor %}
+                
+                document.getElementById('plannedCount').textContent = plannedCount;
+                document.getElementById('unplannedCount').textContent = totalRequirements - plannedCount;
+            }
         });
         
-        const result = await response.json();
-        
-        if (result.success) {
-            // 关闭模态框并刷新页面
-            bootstrap.Modal.getInstance(document.getElementById('addMilestoneModal')).hide();
-            document.getElementById('milestoneForm').reset();
+        // 设置拖拽功能
+        function setupDragAndDrop() {
+            const requirementItems = document.querySelectorAll('.requirement-item[draggable="true"]');
+            const milestoneLists = document.querySelectorAll('.requirements-list');
+            const requirementPools = document.querySelectorAll('.requirements-pool');
             
-            // 重新设置默认日期
-            const tomorrow = new Date();
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            document.getElementById('milestoneDeadline').valueAsDate = tomorrow;
+            requirementItems.forEach(item => {
+                item.addEventListener('dragstart', handleDragStart);
+            });
             
-            location.reload();
+            milestoneLists.forEach(list => {
+                list.addEventListener('dragover', handleDragOver);
+                list.addEventListener('dragenter', handleDragEnter);
+                list.addEventListener('dragleave', handleDragLeave);
+                list.addEventListener('drop', handleDrop);
+            });
             
-            RequirementsAnalyst.showToast('里程碑添加成功', 'success');
+            requirementPools.forEach(pool => {
+                pool.addEventListener('dragover', handleDragOver);
+                pool.addEventListener('dragenter', handleDragEnter);
+                pool.addEventListener('dragleave', handleDragLeave);
+                pool.addEventListener('drop', handleDrop);
+            });
+            
+            let draggedItem = null;
+            
+            function handleDragStart(e) {
+                draggedItem = this;
+                e.dataTransfer.effectAllowed = 'move';
+                setTimeout(() => this.classList.add('dragging'), 0);
+            }
+            
+            function handleDragOver(e) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                return false;
+            }
+            
+            function handleDragEnter(e) {
+                this.classList.add('drag-over');
+            }
+            
+            function handleDragLeave(e) {
+                this.classList.remove('drag-over');
+            }
+            
+            function handleDrop(e) {
+                e.stopPropagation();
+                this.classList.remove('drag-over');
+                
+                if (draggedItem) {
+                    // 移动元素到新位置
+                    this.appendChild(draggedItem);
+                    
+                    // 如果是从需求池拖到里程碑，则更新数据库
+                    const targetMilestoneId = this.getAttribute('data-milestone-id');
+                    if (targetMilestoneId) {
+                        updateMilestoneRequirements(targetMilestoneId);
+                    }
+                }
+                
+                return false;
+            }
+            
+            // 更新里程碑关联的需求
+            function updateMilestoneRequirements(milestoneId) {
+                const milestoneList = document.querySelector(`.requirements-list[data-milestone-id="${milestoneId}"]`);
+                const reqIds = Array.from(milestoneList.querySelectorAll('.requirement-item'))
+                    .map(item => parseInt(item.getAttribute('data-req-id')));
+                
+                fetch(`/api/milestones/${milestoneId}/requirements`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        requirement_ids: reqIds
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success) {
+                        console.error('更新里程碑需求失败');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+            }
         }
-    } catch (error) {
-        console.error('保存里程碑失败:', error);
-        RequirementsAnalyst.showToast('保存失败', 'danger');
-    }
-}
-
-function editMilestone(milestoneId) {
-    RequirementsAnalyst.showToast('编辑功能开发中', 'info');
-    // 后续可以实现在模态框中编辑里程碑的功能
-}
-
-function deleteMilestone(milestoneId) {
-    if (confirm('确定要删除这个里程碑吗？')) {
-        RequirementsAnalyst.showToast('删除功能开发中', 'info');
-        // 后续可以实现删除里程碑的API调用
-    }
-}
-
-async function assignRequirementToMilestone(requirementId, milestoneId) {
-    try {
-        // 这里需要实现需求分配到里程碑的API
-        const response = await fetch(`/api/requirements/${requirementId}/assign`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ milestone_id: milestoneId || null })
-        });
-        
-        if (response.ok) {
-            RequirementsAnalyst.showToast('分配成功', 'success');
-        } else {
-            RequirementsAnalyst.showToast('分配失败', 'danger');
-        }
-    } catch (error) {
-        console.error('分配需求失败:', error);
-        RequirementsAnalyst.showToast('分配功能开发中', 'info');
-    }
-}
-
-function viewRequirement(requirementId) {
-    // 后续可以实现查看需求详情的功能
-    RequirementsAnalyst.showToast('查看详情功能开发中', 'info');
-}
-</script>
-
-<style>
-.timeline-item {
-    position: relative;
-}
-
-.timeline-item::before {
-    content: '';
-    position: absolute;
-    left: 19px;
-    top: 30px;
-    bottom: -20px;
-    width: 2px;
-    background-color: #dee2e6;
-}
-
-.timeline-item:last-child::before {
-    display: none;
-}
-
-.timeline-badge {
-    z-index: 1;
-}
-
-.timeline-content .card {
-    border-left: 4px solid #007bff;
-}
-
-.timeline-content .card-header {
-    background-color: #f8f9fa;
-    border-bottom: 1px solid #dee2e6;
-}
-</style>
-{% endblock %}
+    </script>
+</body>
+</html>

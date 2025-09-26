@@ -477,6 +477,16 @@ function getStatusBadgeColor(status) {
 async function saveRequirement() {
     console.log("开始保存需求");
     
+    // 检查是否处于编辑模式
+    const modal = document.getElementById('addRequirementModal');
+    const editingId = modal.getAttribute('data-editing-id');
+    
+    // 如果在编辑模式下调用保存函数，应该执行更新操作
+    if (editingId) {
+        updateRequirement(parseInt(editingId));
+        return;
+    }
+    
     // 收集表单数据
     const formData = {
         title: document.getElementById('requirementTitle').value.trim(),
@@ -593,17 +603,153 @@ function updateValueDisplays() {
 }
 
 // 查看需求详情
-function viewRequirement(id) {
-    if (id && id > 0) {
-        console.log('查看需求:', id);
-        alert('查看需求功能开发中，ID: ' + id);
+async function viewRequirement(id) {
+    if (!id || id <= 0) return;
+    
+    try {
+        const response = await fetch(`/api/requirements/detail/${id}`);
+        const requirement = await response.json();
+        
+        if (requirement) {
+            // 填充模态框数据
+            document.getElementById('requirementTitle').value = requirement.title || '';
+            document.getElementById('requirementDescription').value = requirement.description || '';
+            document.getElementById('requirementSource').value = requirement.source || '';
+            document.getElementById('requirementCategory').value = requirement.category || 'functional';
+            document.getElementById('requirementPriority').value = requirement.priority || 'medium';
+            document.getElementById('requirementCriteria').value = requirement.acceptance_criteria || '';
+            
+            // 填充价值评估数据
+            document.getElementById('estimatedBusinessValue').value = requirement.estimated_business_value || 5;
+            document.getElementById('estimatedUserValue').value = requirement.estimated_user_value || 5;
+            document.getElementById('estimatedTechnicalValue').value = requirement.estimated_technical_value || 5;
+            document.getElementById('estimatedEffort').value = requirement.estimated_effort || 5;
+            document.getElementById('valueAssessor').value = requirement.value_assessor || '';
+            
+            // 更新显示
+            updateValueDisplays();
+            
+            // 标记当前为编辑模式
+            const modal = document.getElementById('addRequirementModal');
+            modal.setAttribute('data-editing-id', id);
+            
+            // 更改保存按钮行为和样式
+            const saveBtn = document.getElementById('saveRequirementBtn');
+            saveBtn.onclick = function() {
+                updateRequirement(id);
+            };
+            saveBtn.textContent = '更新需求';
+            saveBtn.classList.remove('btn-primary');
+            saveBtn.classList.add('btn-warning');
+            
+            // 显示模态框
+            const modalInstance = new bootstrap.Modal(modal);
+            modalInstance.show();
+        }
+    } catch (error) {
+        console.error('查看需求详情失败:', error);
+        alert('加载需求详情失败: ' + error.message);
+    }
+}
+
+// 更新需求
+async function updateRequirement(id) {
+    const formData = {
+        title: document.getElementById('requirementTitle').value.trim(),
+        description: document.getElementById('requirementDescription').value.trim(),
+        source: document.getElementById('requirementSource').value,
+        category: document.getElementById('requirementCategory').value,
+        priority: document.getElementById('requirementPriority').value,
+        acceptance_criteria: document.getElementById('requirementCriteria').value.trim(),
+        estimated_business_value: parseInt(document.getElementById('estimatedBusinessValue').value) || 5,
+        estimated_user_value: parseInt(document.getElementById('estimatedUserValue').value) || 5,
+        estimated_technical_value: parseInt(document.getElementById('estimatedTechnicalValue').value) || 5,
+        estimated_effort: parseInt(document.getElementById('estimatedEffort').value) || 1,
+        value_assessor: document.getElementById('valueAssessor').value.trim()
+    };
+    
+    if (!formData.title || !formData.description) {
+        alert('请填写需求标题和描述');
+        return;
+    }
+    
+    if (formData.estimated_effort <= 0) {
+        formData.estimated_effort = 1;
+    }
+    
+    try {
+        const response = await fetch(`/api/requirements/${id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            const modalElement = document.getElementById('addRequirementModal');
+            const modal = bootstrap.Modal.getInstance(modalElement);
+            if (modal) {
+                modal.hide();
+            }
+            
+            // 重置表单
+            document.getElementById('requirementForm').reset();
+            updateValueDisplays();
+            
+            // 恢复保存按钮
+            const saveBtn = document.getElementById('saveRequirementBtn');
+            saveBtn.onclick = saveRequirement;
+            saveBtn.textContent = '保存';
+            saveBtn.classList.remove('btn-warning');
+            saveBtn.classList.add('btn-primary');
+            
+            // 清除编辑状态标记
+            const modalEl = document.getElementById('addRequirementModal');
+            modalEl.removeAttribute('data-editing-id');
+            
+            // 刷新列表
+            setTimeout(() => {
+                loadRequirements();
+            }, 500);
+            
+            alert('需求更新成功');
+        } else {
+            const errorMessage = result.error || '未知错误';
+            alert('更新失败: ' + errorMessage);
+        }
+    } catch (error) {
+        console.error('更新需求失败:', error);
+        alert('更新失败: ' + error.message);
     }
 }
 
 // 删除需求
-function deleteRequirement(id) {
-    if (id && id > 0) {
-        alert('删除需求功能开发中，ID: ' + id);
+async function deleteRequirement(id) {
+    if (!id || id <= 0) return;
+    
+    if (!confirm('确定要删除这个需求吗？此操作无法撤销。')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/requirements/${id}`, {
+            method: 'DELETE'
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            loadRequirements();
+            alert('需求删除成功');
+        } else {
+            alert('删除失败: ' + (result.error || '未知错误'));
+        }
+    } catch (error) {
+        console.error('删除需求失败:', error);
+        alert('删除失败: ' + error.message);
     }
 }
 
@@ -660,5 +806,20 @@ async function fixData() {
     }
 }
 
+// 重置模态框状态
+document.getElementById('addRequirementModal').addEventListener('hidden.bs.modal', function () {
+    document.getElementById('requirementForm').reset();
+    updateValueDisplays();
+    
+    // 恢复保存按钮
+    const saveBtn = document.getElementById('saveRequirementBtn');
+    saveBtn.onclick = saveRequirement;
+    saveBtn.textContent = '保存';
+    saveBtn.classList.remove('btn-warning');
+    saveBtn.classList.add('btn-primary');
+    
+    // 清除编辑状态标记
+    this.removeAttribute('data-editing-id');
+});
 </script>
 {% endblock %}

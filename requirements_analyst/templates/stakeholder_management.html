@@ -60,7 +60,8 @@
             </div>
             <div class="card-body">
                 <div id="stakeholderMatrix" class="stakeholder-matrix">
-                    <canvas id="matrixChart" width="400" height="400"></canvas>
+                    <canvas id="matrixChart" width="600" height="600"></canvas>
+                    <div id="matrixLegend" class="mt-3"></div>
                 </div>
             </div>
         </div>
@@ -146,11 +147,14 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 // 页面加载完成后执行
 document.addEventListener('DOMContentLoaded', function() {
     loadStakeholders();
 });
+
+let matrixChart = null;
 
 // 加载干系人列表
 async function loadStakeholders() {
@@ -188,6 +192,9 @@ async function loadStakeholders() {
             `;
             tbody.appendChild(row);
         });
+        
+        // 更新矩阵图
+        updateMatrixChart(stakeholders);
     } catch (error) {
         console.error('加载干系人失败:', error);
     }
@@ -245,6 +252,232 @@ async function saveStakeholder() {
         console.error('保存干系人失败:', error);
         RequirementsAnalyst.showToast('保存失败', 'danger');
     }
+}
+
+// 编辑干系人
+async function editStakeholder(stakeholderId) {
+    try {
+        const response = await fetch(`/api/stakeholders/{{ project.id }}/${stakeholderId}`);
+        const stakeholder = await response.json();
+        
+        // 填充表单数据
+        document.getElementById('stakeholderName').value = stakeholder.name;
+        document.getElementById('stakeholderRole').value = stakeholder.role || '';
+        document.getElementById('stakeholderInfluence').value = stakeholder.influence;
+        document.getElementById('stakeholderInterest').value = stakeholder.interest;
+        document.getElementById('stakeholderRequirements').value = stakeholder.requirements || '';
+        document.getElementById('stakeholderContact').value = stakeholder.contact_info || '';
+        document.getElementById('stakeholderNotes').value = stakeholder.notes || '';
+        
+        // 更改保存按钮行为
+        const saveBtn = document.querySelector('#addStakeholderModal .modal-footer .btn-primary');
+        saveBtn.onclick = function() {
+            updateStakeholder(stakeholderId);
+        };
+        saveBtn.textContent = '更新';
+        
+        // 显示模态框
+        const modal = new bootstrap.Modal(document.getElementById('addStakeholderModal'));
+        modal.show();
+        
+    } catch (error) {
+        console.error('加载干系人信息失败:', error);
+        RequirementsAnalyst.showToast('加载失败', 'danger');
+    }
+}
+
+// 更新干系人
+async function updateStakeholder(stakeholderId) {
+    const formData = {
+        name: document.getElementById('stakeholderName').value,
+        role: document.getElementById('stakeholderRole').value,
+        influence: document.getElementById('stakeholderInfluence').value,
+        interest: document.getElementById('stakeholderInterest').value,
+        requirements: document.getElementById('stakeholderRequirements').value,
+        contact_info: document.getElementById('stakeholderContact').value,
+        notes: document.getElementById('stakeholderNotes').value
+    };
+    
+    if (!formData.name) {
+        alert('请输入干系人姓名');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/stakeholders/{{ project.id }}/${stakeholderId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // 关闭模态框并刷新列表
+            const modal = bootstrap.Modal.getInstance(document.getElementById('addStakeholderModal'));
+            modal.hide();
+            
+            // 重置表单和按钮
+            document.getElementById('stakeholderForm').reset();
+            const saveBtn = document.querySelector('#addStakeholderModal .modal-footer .btn-primary');
+            saveBtn.onclick = function() {
+                saveStakeholder();
+            };
+            saveBtn.textContent = '保存';
+            
+            loadStakeholders();
+            RequirementsAnalyst.showToast('干系人更新成功', 'success');
+        }
+    } catch (error) {
+        console.error('更新干系人失败:', error);
+        RequirementsAnalyst.showToast('更新失败', 'danger');
+    }
+}
+
+// 删除干系人
+async function deleteStakeholder(stakeholderId) {
+    if (!confirm('确定要删除这个干系人吗？此操作无法撤销。')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/stakeholders/{{ project.id }}/${stakeholderId}`, {
+            method: 'DELETE'
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            loadStakeholders();
+            RequirementsAnalyst.showToast('干系人删除成功', 'success');
+        }
+    } catch (error) {
+        console.error('删除干系人失败:', error);
+        RequirementsAnalyst.showToast('删除失败', 'danger');
+    }
+}
+
+// 重置模态框状态
+document.getElementById('addStakeholderModal').addEventListener('hidden.bs.modal', function () {
+    document.getElementById('stakeholderForm').reset();
+    const saveBtn = document.querySelector('#addStakeholderModal .modal-footer .btn-primary');
+    saveBtn.onclick = function() {
+        saveStakeholder();
+    };
+    saveBtn.textContent = '保存';
+});
+
+// 更新干系人矩阵图
+function updateMatrixChart(stakeholders) {
+    const ctx = document.getElementById('matrixChart').getContext('2d');
+    
+    // 如果已有图表实例，先销毁
+    if (matrixChart) {
+        matrixChart.destroy();
+    }
+    
+    // 准备数据
+    const data = {
+        datasets: [{
+            label: '干系人',
+            data: stakeholders.map(s => ({
+                x: s.interest,
+                y: s.influence,
+                name: s.name,
+                role: s.role || '未指定'
+            })),
+            backgroundColor: 'rgba(54, 162, 235, 0.6)',
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 1,
+            pointRadius: 8
+        }]
+    };
+    
+    // 创建图表
+    matrixChart = new Chart(ctx, {
+        type: 'scatter',
+        data: data,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: '关注度'
+                    },
+                    min: 0,
+                    max: 6,
+                    ticks: {
+                        stepSize: 1
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: '影响力'
+                    },
+                    min: 0,
+                    max: 6,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const point = context.raw;
+                            return [
+                                `姓名: ${point.name}`,
+                                `角色: ${point.role}`,
+                                `影响力: ${point.y}`,
+                                `关注度: ${point.x}`
+                            ];
+                        }
+                    }
+                },
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+    
+    // 更新图例说明
+    updateMatrixLegend();
+}
+
+// 更新矩阵图例说明
+function updateMatrixLegend() {
+    const legendDiv = document.getElementById('matrixLegend');
+    legendDiv.innerHTML = `
+        <div class="row text-center">
+            <div class="col-md-3">
+                <div style="background-color: rgba(255, 99, 132, 0.2); border: 1px solid rgba(255, 99, 132, 1); height: 20px; width: 20px; display: inline-block;"></div>
+                <div>重点管理</div>
+                <small class="text-muted">高影响力高关注度</small>
+            </div>
+            <div class="col-md-3">
+                <div style="background-color: rgba(255, 206, 86, 0.2); border: 1px solid rgba(255, 206, 86, 1); height: 20px; width: 20px; display: inline-block;"></div>
+                <div>保持满意</div>
+                <small class="text-muted">高影响力低关注度</small>
+            </div>
+            <div class="col-md-3">
+                <div style="background-color: rgba(75, 192, 192, 0.2); border: 1px solid rgba(75, 192, 192, 1); height: 20px; width: 20px; display: inline-block;"></div>
+                <div>随时告知</div>
+                <small class="text-muted">低影响力高关注度</small>
+            </div>
+            <div class="col-md-3">
+                <div style="background-color: rgba(153, 102, 255, 0.2); border: 1px solid rgba(153, 102, 255, 1); height: 20px; width: 20px; display: inline-block;"></div>
+                <div>监督</div>
+                <small class="text-muted">低影响力低关注度</small>
+            </div>
+        </div>
+    `;
 }
 </script>
 {% endblock %}

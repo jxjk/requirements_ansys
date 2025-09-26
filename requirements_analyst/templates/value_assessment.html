@@ -19,7 +19,7 @@
                 <a href="{{ url_for('requirement_analysis', project_id=project.id) }}" class="btn btn-outline-primary me-2">
                     <i class="fas fa-arrow-left me-1"></i>返回分析
                 </a>
-                <button class="btn btn-primary" onclick="exportValueReport()">
+                <button class="btn btn-primary" id="exportReportBtn"data-project-id="{{ project.id }}" >
                     <i class="fas fa-download me-1"></i>导出报告
                 </button>
             </div>
@@ -71,7 +71,7 @@
             </div>
             <div class="card-body">
                 <div class="table-responsive">
-                    <table class="table table-hover">
+                    <table class="table table-hover" id="valueAssessmentTable">
                         <thead>
                             <tr>
                                 <th>需求标题</th>
@@ -127,9 +127,9 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <button class="btn btn-sm btn-outline-primary" 
-                                            onclick="openAssessmentModal({{ requirement.id }})"
-                                            {% if requirement.status != 'completed' %}disabled{% endif %}>
+                                    <button class="btn btn-sm btn-outline-primary edit-assessment-btn" 
+                                            data-requirement-id="{{ requirement.id }}"
+                                            {% if requirement.status != 'completed' %}disabled title="只有已完成的需求才能评估"{% endif %}>
                                         <i class="fas fa-edit"></i>
                                     </button>
                                 </td>
@@ -156,7 +156,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">实际价值评估</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <form id="assessmentForm">
@@ -178,24 +178,24 @@
                                 <div class="card-body">
                                     <div class="mb-2">
                                         <small class="text-muted">业务价值:</small>
-                                        <span id="estimatedBusinessValue" class="badge bg-info float-end"></span>
+                                        <span id="estimatedBusinessValue" class="badge bg-info float-end">0分</span>
                                     </div>
                                     <div class="mb-2">
                                         <small class="text-muted">用户价值:</small>
-                                        <span id="estimatedUserValue" class="badge bg-info float-end"></span>
+                                        <span id="estimatedUserValue" class="badge bg-info float-end">0分</span>
                                     </div>
                                     <div class="mb-2">
                                         <small class="text-muted">技术价值:</small>
-                                        <span id="estimatedTechnicalValue" class="badge bg-info float-end"></span>
+                                        <span id="estimatedTechnicalValue" class="badge bg-info float-end">0分</span>
                                     </div>
                                     <div class="mb-2">
                                         <small class="text-muted">工作量:</small>
-                                        <span id="estimatedEffort" class="badge bg-warning float-end"></span>
+                                        <span id="estimatedEffort" class="badge bg-warning float-end">0分</span>
                                     </div>
                                     <hr>
                                     <div>
                                         <small class="text-muted">预估ROI:</small>
-                                        <span id="estimatedROI" class="badge bg-success float-end"></span>
+                                        <span id="estimatedROI" class="badge bg-success float-end">0.00</span>
                                     </div>
                                 </div>
                             </div>
@@ -261,16 +261,11 @@
                         <label for="actualValueAssessor" class="form-label">评估人</label>
                         <input type="text" class="form-control" id="actualValueAssessor" required>
                     </div>
-                    
-                    <div class="mb-3">
-                        <label for="assessmentNotes" class="form-label">评估说明</label>
-                        <textarea class="form-control" id="assessmentNotes" rows="3" placeholder="记录实际价值与预估差异的原因..."></textarea>
-                    </div>
                 </form>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                <button type="button" class="btn btn-primary" onclick="saveActualAssessment()">保存评估</button>
+                <button type="button" class="btn btn-primary" id="saveAssessmentBtn">保存评估</button>
             </div>
         </div>
     </div>
@@ -280,55 +275,113 @@
 
 {% block scripts %}
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 绑定编辑按钮事件
+    bindEditButtons();
+    
+    // 绑定保存按钮事件
+    const saveBtn = document.getElementById('saveAssessmentBtn');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', saveActualAssessment);
+    }
+    
+    // 绑定导出按钮事件
+    const exportBtn = document.getElementById('exportReportBtn');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', function() {
+            const projectId = this.getAttribute('data-project-id');
+            exportValueReport( projectId );
+        });
+    }
+    
+    // 绑定滑块事件
+    ['actualBusinessValue', 'actualUserValue', 'actualTechnicalValue', 'actualEffort'].forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.addEventListener('input', function() {
+                const displayId = id.replace('Value', 'Display').replace('Effort', 'EffortDisplay');
+                const displayElement = document.getElementById(displayId);
+                if (displayElement) {
+                    displayElement.textContent = this.value + '分';
+                }
+                updateROIDisplay();
+            });
+        }
+    });
+    
+    // 初始化显示
+    updateROIDisplay();
+});
+
+function bindEditButtons() {
+    // 使用事件委托确保动态添加的元素也能响应事件
+    document.getElementById('valueAssessmentTable').addEventListener('click', function(e) {
+        if (e.target.closest('.edit-assessment-btn')) {
+            const button = e.target.closest('.edit-assessment-btn');
+            const requirementId = button.getAttribute('data-requirement-id');
+            if (requirementId) {
+                openAssessmentModal(requirementId);
+            }
+        }
+    });
+}
+
 // 实时更新ROI计算
 function updateROIDisplay() {
-    const businessValue = parseInt(document.getElementById('actualBusinessValue').value);
-    const userValue = parseInt(document.getElementById('actualUserValue').value);
-    const technicalValue = parseInt(document.getElementById('actualTechnicalValue').value);
-    const effort = parseInt(document.getElementById('actualEffort').value);
+    const businessValue = parseInt(document.getElementById('actualBusinessValue')?.value) || 0;
+    const userValue = parseInt(document.getElementById('actualUserValue')?.value) || 0;
+    const technicalValue = parseInt(document.getElementById('actualTechnicalValue')?.value) || 0;
+    const effort = parseInt(document.getElementById('actualEffort')?.value) || 1;
     
     const totalValue = businessValue + userValue + technicalValue;
     const roi = effort > 0 ? (totalValue / effort).toFixed(2) : '0.00';
     
-    document.getElementById('actualROIDisplay').textContent = roi;
+    const roiDisplay = document.getElementById('actualROIDisplay');
+    if (roiDisplay) {
+        roiDisplay.textContent = roi;
+    }
 }
-
-// 绑定滑块事件
-['actualBusinessValue', 'actualUserValue', 'actualTechnicalValue', 'actualEffort'].forEach(id => {
-    document.getElementById(id).addEventListener('input', function() {
-        document.getElementById(id.replace('Value', 'Display') || id.replace('Effort', 'EffortDisplay')).textContent = this.value + '分';
-        updateROIDisplay();
-    });
-});
 
 // 打开评估模态框
 async function openAssessmentModal(requirementId) {
     try {
         const response = await fetch(`/api/requirements/${requirementId}`);
-        const requirement = await response.json();
-        
-        document.getElementById('assessmentRequirementId').value = requirementId;
-        document.getElementById('requirementTitle').textContent = requirement.title;
-        document.getElementById('requirementDescription').textContent = requirement.description;
-        
-        // 显示预估价值
-        document.getElementById('estimatedBusinessValue').textContent = requirement.estimated_business_value + '分';
-        document.getElementById('estimatedUserValue').textContent = requirement.estimated_user_value + '分';
-        document.getElementById('estimatedTechnicalValue').textContent = requirement.estimated_technical_value + '分';
-        document.getElementById('estimatedEffort').textContent = requirement.estimated_effort + '分';
-        document.getElementById('estimatedROI').textContent = requirement.estimated_roi.toFixed(2);
-        
-        // 设置实际价值默认值
-        if (requirement.actual_business_value > 0) {
-            document.getElementById('actualBusinessValue').value = requirement.actual_business_value;
-            document.getElementById('actualUserValue').value = requirement.actual_user_value;
-            document.getElementById('actualTechnicalValue').value = requirement.actual_technical_value;
-            document.getElementById('actualEffort').value = requirement.actual_effort;
-            document.getElementById('actualValueAssessor').value = requirement.actual_value_assessor || '';
-            document.getElementById('assessmentNotes').value = requirement.assessment_notes || '';
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
         
+        const requirement = await response.json();
+        
+        if (!requirement) {
+            RequirementsAnalyst.showToast('加载需求详情失败', 'danger');
+            return;
+        }
+        
+        document.getElementById('assessmentRequirementId').value = requirementId;
+        document.getElementById('requirementTitle').textContent = requirement.title || '';
+        document.getElementById('requirementDescription').textContent = requirement.description || '';
+        
+        // 显示预估价值
+        document.getElementById('estimatedBusinessValue').textContent = (requirement.estimated_business_value || 0) + '分';
+        document.getElementById('estimatedUserValue').textContent = (requirement.estimated_user_value || 0) + '分';
+        document.getElementById('estimatedTechnicalValue').textContent = (requirement.estimated_technical_value || 0) + '分';
+        document.getElementById('estimatedEffort').textContent = (requirement.estimated_effort || 1) + '分';
+        document.getElementById('estimatedROI').textContent = (requirement.estimated_roi || 0).toFixed(2);
+        
+        // 设置实际价值默认值
+        document.getElementById('actualBusinessValue').value = requirement.actual_business_value || 5;
+        document.getElementById('actualUserValue').value = requirement.actual_user_value || 5;
+        document.getElementById('actualTechnicalValue').value = requirement.actual_technical_value || 5;
+        document.getElementById('actualEffort').value = requirement.actual_effort || 5;
+        
         // 更新显示
+        document.getElementById('actualBusinessDisplay').textContent = (requirement.actual_business_value || 5) + '分';
+        document.getElementById('actualUserDisplay').textContent = (requirement.actual_user_value || 5) + '分';
+        document.getElementById('actualTechnicalDisplay').textContent = (requirement.actual_technical_value || 5) + '分';
+        document.getElementById('actualEffortDisplay').textContent = (requirement.actual_effort || 5) + '分';
+        
+        document.getElementById('actualValueAssessor').value = requirement.actual_value_assessor || '';
+        
         updateROIDisplay();
         
         const modal = new bootstrap.Modal(document.getElementById('assessmentModal'));
@@ -336,7 +389,7 @@ async function openAssessmentModal(requirementId) {
         
     } catch (error) {
         console.error('加载需求详情失败:', error);
-        RequirementsAnalyst.showToast('加载失败', 'danger');
+        RequirementsAnalyst.showToast('加载失败: ' + error.message, 'danger');
     }
 }
 
@@ -348,8 +401,7 @@ async function saveActualAssessment() {
         actual_user_value: parseInt(document.getElementById('actualUserValue').value),
         actual_technical_value: parseInt(document.getElementById('actualTechnicalValue').value),
         actual_effort: parseInt(document.getElementById('actualEffort').value),
-        actual_value_assessor: document.getElementById('actualValueAssessor').value,
-        assessment_notes: document.getElementById('assessmentNotes').value
+        actual_value_assessor: document.getElementById('actualValueAssessor').value
     };
     
     if (!formData.actual_value_assessor) {
@@ -366,21 +418,71 @@ async function saveActualAssessment() {
             body: JSON.stringify(formData)
         });
         
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const result = await response.json();
         
         if (result.success) {
-            bootstrap.Modal.getInstance(document.getElementById('assessmentModal')).hide();
-            location.reload();
+            const modalElement = document.getElementById('assessmentModal');
+            if (modalElement) {
+                const modal = bootstrap.Modal.getInstance(modalElement);
+                if (modal) {
+                    modal.hide();
+                }
+            }
+            
+            // 重新加载页面以更新统计数据
+            setTimeout(() => {
+                location.reload();
+            }, 500);
+            
             RequirementsAnalyst.showToast('评估保存成功', 'success');
+        } else {
+            RequirementsAnalyst.showToast('保存失败: ' + (result.error || '未知错误'), 'danger');
         }
     } catch (error) {
         console.error('保存评估失败:', error);
-        RequirementsAnalyst.showToast('保存失败', 'danger');
+        RequirementsAnalyst.showToast('保存失败: ' + error.message, 'danger');
     }
 }
 
-function exportValueReport() {
-    RequirementsAnalyst.showToast('导出功能开发中', 'info');
+// 导出价值评估报告
+async function exportValueReport(projectId) {
+    try {
+        const response = await fetch(`/api/projects/${projectId}/value-report`);
+        
+        if (response.ok) {
+            const contentDisposition = response.headers.get('Content-Disposition');
+            let filename = `价值评估报告_${new Date().toISOString().slice(0, 10)}.json`;
+            
+            if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+                if (filenameMatch && filenameMatch[1]) {
+                    filename = filenameMatch[1];
+                }
+            }
+            
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            
+            RequirementsAnalyst.showToast('报告导出成功', 'success');
+        } else {
+            const errorText = await response.text();
+            RequirementsAnalyst.showToast('导出失败: ' + errorText, 'danger');
+        }
+    } catch (error) {
+        console.error('导出报告失败:', error);
+        RequirementsAnalyst.showToast('导出失败: ' + error.message, 'danger');
+    }
 }
 </script>
 {% endblock %}
