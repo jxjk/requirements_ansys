@@ -23,24 +23,6 @@
     </div>
 </div>
 
-<!-- 调试信息 >
-<div class="row mb-3">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">调试信息</h5>
-            </div>
-            <div class="card-body">
-                <p>项目ID: {{ project.id }}</p>
-                <p>项目名称: {{ project.name }}</p>
-                <button class="btn btn-sm btn-info" onclick="debugApiCall()">测试API调用</button>
-                <button class="btn btn-sm btn-warning" onclick="forceRefresh()">强制刷新列表</button>
-                <button class="btn btn-sm btn-danger" onclick="diagnoseData()">诊断数据问题</button>                <div id="debugInfo" class="mt-2"></div>
-            </div>
-        </div>
-    </div>
-</div -->
-
 <div class="row">
     <div class="col-12">
         <div class="card">
@@ -54,8 +36,7 @@
                             <tr>
                                 <th>ID</th>
                                 <th>标题</th>
-                                <th>来源</th>
-                                <th>类别</th>
+                                <th>类型</th>
                                 <th>优先级</th>
                                 <th>状态</th>
                                 <th>ROI</th>
@@ -64,7 +45,7 @@
                             </tr>
                         </thead>
                         <tbody id="requirementsBody">
-                            <tr><td colspan="9" class="text-center">加载中...</td></tr>
+                            <tr><td colspan="8" class="text-center">加载中...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -75,7 +56,7 @@
 
 <!-- 添加需求模态框 -->
 <div class="modal fade" id="addRequirementModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">添加需求</h5>
@@ -83,6 +64,7 @@
             </div>
             <div class="modal-body">
                 <form id="requirementForm">
+                    <!-- 第一行：标题和优先级 -->
                     <div class="row">
                         <div class="col-md-8">
                             <div class="mb-3">
@@ -102,7 +84,20 @@
                         </div>
                     </div>
                     
+                    <!-- 第二行：类型和来源 -->
                     <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="requirementCategory" class="form-label">需求类型 *</label>
+                                <select class="form-select" id="requirementCategory" required>
+                                    <option value="">选择类型...</option>
+                                    <option value="functional">功能需求</option>
+                                    <option value="non-functional">非功能需求</option>
+                                    <option value="business">业务需求</option>
+                                    <option value="user">用户需求</option>
+                                </select>
+                            </div>
+                        </div>
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="requirementSource" class="form-label">需求来源</label>
@@ -118,98 +113,120 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="requirementCategory" class="form-label">需求类别</label>
-                                <select class="form-select" id="requirementCategory">
-                                    <option value="functional">功能需求</option>
-                                    <option value="non-functional">非功能需求</option>
-                                    <option value="business">业务需求</option>
-                                    <option value="user">用户需求</option>
-                                </select>
-                            </div>
-                        </div>
                     </div>
                     
+                    <!-- 场景描述 -->
                     <div class="mb-3">
-                        <label for="requirementDescription" class="form-label">需求描述 *</label>
-                        <textarea class="form-control" id="requirementDescription" rows="4" required placeholder="详细描述需求内容、背景和目标..."></textarea>
+                        <label for="requirementScenario" class="form-label">场景描述 *</label>
+                        <textarea class="form-control" id="requirementScenario" rows="3" required placeholder="描述需求发生的场景和背景..."></textarea>
                     </div>
                     
+                    <!-- 解决的问题 -->
+                    <div class="mb-3">
+                        <label for="requirementProblem" class="form-label">解决的问题 *</label>
+                        <textarea class="form-control" id="requirementProblem" rows="3" required placeholder="详细描述该需求要解决的具体问题..."></textarea>
+                    </div>
+                    
+                    <!-- 当前解决方案 -->
+                    <div class="mb-3">
+                        <label for="currentSolution" class="form-label">当前解决方案</label>
+                        <textarea class="form-control" id="currentSolution" rows="2" placeholder="描述当前是如何解决这个问题的（如果有的话）..."></textarea>
+                    </div>
+                    
+                    <!-- 目标 -->
+                    <div class="mb-3">
+                        <label for="requirementGoal" class="form-label">目标 *</label>
+                        <textarea class="form-control" id="requirementGoal" rows="2" required placeholder="描述该需求要达成的目标..."></textarea>
+                    </div>
+                    
+                    <!-- 预期方案 -->
+                    <div class="mb-3">
+                        <label for="expectedSolution" class="form-label">预期解决方案</label>
+                        <textarea class="form-control" id="expectedSolution" rows="3" placeholder="描述期望的解决方案或实现方式..."></textarea>
+                    </div>
+                    
+                    <!-- 验收标准 -->
                     <div class="mb-3">
                         <label for="requirementCriteria" class="form-label">验收标准</label>
-                        <textarea class="form-control" id="requirementCriteria" rows="3" placeholder="描述如何验证需求是否完成..."></textarea>
+                        <textarea class="form-control" id="requirementCriteria" rows="2" placeholder="描述如何验证需求是否完成..."></textarea>
                     </div>
                 </form>
-            </div>
-
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-header">
-                            <h6 class="mb-0">价值预估</h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="mb-3">
-                                <label for="estimatedBusinessValue" class="form-label">业务价值 (1-10分)</label>
-                                <input type="range" class="form-range" id="estimatedBusinessValue" min="1" max="10" value="5">
-                                <div class="d-flex justify-content-between">
-                                    <small>1分 (低)</small>
-                                    <span id="businessValueDisplay">5分</span>
-                                    <small>10分 (高)</small>
-                                </div>
+                
+                <div class="row mt-4">
+                    <!-- 价值评估 -->
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">价值评估</h6>
                             </div>
-                            
-                            <div class="mb-3">
-                                <label for="estimatedUserValue" class="form-label">用户价值 (1-10分)</label>
-                                <input type="range" class="form-range" id="estimatedUserValue" min="1" max="10" value="5">
-                                <div class="d-flex justify-content-between">
-                                    <small>1分 (低)</small>
-                                    <span id="userValueDisplay">5分</span>
-                                    <small>10分 (高)</small>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="estimatedBusinessValue" class="form-label">业务价值 (1-10分)</label>
+                                    <input type="range" class="form-range" id="estimatedBusinessValue" min="1" max="10" value="5">
+                                    <div class="d-flex justify-content-between">
+                                        <small>1分 (低)</small>
+                                        <span id="businessValueDisplay">5分</span>
+                                        <small>10分 (高)</small>
+                                    </div>
                                 </div>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label for="estimatedTechnicalValue" class="form-label">技术价值 (1-10分)</label>
-                                <input type="range" class="form-range" id="estimatedTechnicalValue" min="1" max="10" value="5">
-                                <div class="d-flex justify-content-between">
-                                    <small>1分 (低)</small>
-                                    <span id="technicalValueDisplay">5分</span>
-                                    <small>10分 (高)</small>
+                                
+                                <div class="mb-3">
+                                    <label for="estimatedUserValue" class="form-label">用户价值 (1-10分)</label>
+                                    <input type="range" class="form-range" id="estimatedUserValue" min="1" max="10" value="5">
+                                    <div class="d-flex justify-content-between">
+                                        <small>1分 (低)</small>
+                                        <span id="userValueDisplay">5分</span>
+                                        <small>10分 (高)</small>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="estimatedTechnicalValue" class="form-label">技术价值 (1-10分)</label>
+                                    <input type="range" class="form-range" id="estimatedTechnicalValue" min="1" max="10" value="5">
+                                    <div class="d-flex justify-content-between">
+                                        <small>1分 (低)</small>
+                                        <span id="technicalValueDisplay">5分</span>
+                                        <small>10分 (高)</small>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="valueAssessor" class="form-label">评估人</label>
+                                    <input type="text" class="form-control" id="valueAssessor" placeholder="填写评估人姓名">
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
-                
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-header">
-                            <h6 class="mb-0">工作量预估</h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="mb-3">
-                                <label for="estimatedEffort" class="form-label">预估工作量 (1-10分)</label>
-                                <input type="range" class="form-range" id="estimatedEffort" min="1" max="10" value="5">
-                                <div class="d-flex justify-content-between">
-                                    <small>1分 (简单)</small>
-                                    <span id="effortDisplay">5分</span>
-                                    <small>10分 (复杂)</small>
-                                </div>
+                    
+                    <!-- 工作量评估 -->
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">工作量评估</h6>
                             </div>
-                            
-                            <div class="mb-3">
-                                <label class="form-label">投资回报率 (ROI)</label>
-                                <div class="alert alert-info py-2">
-                                    <strong id="roiDisplay">1.00</strong>
-                                    <small class="text-muted"> (价值总分 / 工作量)</small>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="estimatedEffort" class="form-label">预估工作量 (1-10分)</label>
+                                    <input type="range" class="form-range" id="estimatedEffort" min="1" max="10" value="5">
+                                    <div class="d-flex justify-content-between">
+                                        <small>1分 (简单)</small>
+                                        <span id="effortDisplay">5分</span>
+                                        <small>10分 (复杂)</small>
+                                    </div>
                                 </div>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label for="valueAssessor" class="form-label">评估人</label>
-                                <input type="text" class="form-control" id="valueAssessor" placeholder="填写评估人姓名">
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">投资回报率 (ROI)</label>
+                                    <div class="alert alert-info py-2">
+                                        <strong id="roiDisplay">1.00</strong>
+                                        <small class="text-muted"> (价值总分 / 工作量)</small>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="otherInfo" class="form-label">其他信息</label>
+                                    <textarea class="form-control" id="otherInfo" rows="3" placeholder="其他需要说明的信息..."></textarea>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -253,44 +270,6 @@ document.addEventListener('DOMContentLoaded', function() {
     updateValueDisplays();
 });
 
-// 强制刷新列表
-function forceRefresh() {
-    loadRequirements();
-}
-
-// 调试API调用
-async function debugApiCall() {
-    const debugInfo = document.getElementById('debugInfo');
-    debugInfo.innerHTML = '<p>正在测试API调用...</p>';
-    
-    try {
-        // 添加时间戳防止缓存
-        const timestamp = new Date().getTime();
-        const response = await fetch(`/api/requirements/{{ project.id }}?t=${timestamp}`, {
-            headers: {
-                'Cache-Control': 'no-cache',
-                'Pragma': 'no-cache',
-                'Expires': '0'
-            }
-        });
-        const status = response.status;
-        const data = await response.json();
-        
-        debugInfo.innerHTML = `
-            <p><strong>API响应状态:</strong> ${status}</p>
-            <p><strong>响应数据类型:</strong> ${Array.isArray(data) ? '数组' : typeof data}</p>
-            <p><strong>数据长度:</strong> ${Array.isArray(data) ? data.length : 'N/A'}</p>
-            <p><strong>响应数据:</strong></p>
-            <pre style="max-height: 300px; overflow-y: auto;">${JSON.stringify(data, null, 2)}</pre>
-        `;
-        
-        console.log('调试API响应:', {status, data});
-    } catch (error) {
-        debugInfo.innerHTML = `<p class="text-danger"><strong>API调用错误:</strong> ${error.message}</p>`;
-        console.error('调试API调用失败:', error);
-    }
-}
-
 // 加载需求列表
 async function loadRequirements() {
     console.log("开始加载需求列表");
@@ -301,7 +280,7 @@ async function loadRequirements() {
     }
     
     // 显示加载状态
-    tbody.innerHTML = '<tr><td colspan="9" class="text-center">加载中...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center">加载中...</td></tr>';
     
     try {
         // 添加时间戳防止缓存
@@ -347,7 +326,7 @@ async function loadRequirements() {
         
     } catch (error) {
         console.error('加载需求失败:', error);
-        tbody.innerHTML = `<tr><td colspan="9" class="text-center text-danger">加载失败: ${error.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center text-danger">加载失败: ${error.message}</td></tr>`;
     }
 }
 
@@ -360,7 +339,7 @@ function renderRequirements(requirements) {
     console.log('渲染需求数据:', requirements);
     
     if (!requirements || !Array.isArray(requirements) || requirements.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" class="text-center">暂无需求数据</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center">暂无需求数据</td></tr>';
         return;
     }
     
@@ -383,9 +362,7 @@ function renderRequirements(requirements) {
             <td>${escapeHtml(req.id || 'N/A')}</td>
             <td>
                 <strong>${escapeHtml(req.title || '')}</strong>
-                ${req.description ? `<br><small class="text-muted">${escapeHtml(req.description.substring(0, 50))}${req.description.length > 50 ? '...' : ''}</small>` : ''}
             </td>
-            <td>${escapeHtml(req.source || '-')}</td>
             <td><span class="badge bg-secondary">${getCategoryText(req.category)}</span></td>
             <td><span class="badge bg-${getPriorityBadgeColor(req.priority)}">${getPriorityText(req.priority)}</span></td>
             <td><span class="badge bg-${getStatusBadgeColor(req.status)}">${getStatusText(req.status)}</span></td>
@@ -405,7 +382,7 @@ function renderRequirements(requirements) {
     
     // 添加统计信息
     const statsRow = document.createElement('tr');
-    statsRow.innerHTML = `<td colspan="9" class="text-end"><strong>总计: ${requirements.length} 条记录</strong></td>`;
+    statsRow.innerHTML = `<td colspan="8" class="text-end"><strong>总计: ${requirements.length} 条记录</strong></td>`;
     tbody.appendChild(statsRow);
 }
 
@@ -473,7 +450,7 @@ function getStatusBadgeColor(status) {
     return 'info';
 }
 
-// 保存需求 - 修复后的完整函数
+// 保存需求
 async function saveRequirement() {
     console.log("开始保存需求");
     
@@ -490,23 +467,28 @@ async function saveRequirement() {
     // 收集表单数据
     const formData = {
         title: document.getElementById('requirementTitle').value.trim(),
-        description: document.getElementById('requirementDescription').value.trim(),
-        source: document.getElementById('requirementSource').value,
         category: document.getElementById('requirementCategory').value,
+        source: document.getElementById('requirementSource').value,
         priority: document.getElementById('requirementPriority').value,
+        scenario: document.getElementById('requirementScenario').value.trim(),
+        problem: document.getElementById('requirementProblem').value.trim(),
+        current_solution: document.getElementById('currentSolution').value.trim(),
+        goal: document.getElementById('requirementGoal').value.trim(),
+        expected_solution: document.getElementById('expectedSolution').value.trim(),
         acceptance_criteria: document.getElementById('requirementCriteria').value.trim(),
         estimated_business_value: parseInt(document.getElementById('estimatedBusinessValue').value) || 5,
         estimated_user_value: parseInt(document.getElementById('estimatedUserValue').value) || 5,
         estimated_technical_value: parseInt(document.getElementById('estimatedTechnicalValue').value) || 5,
         estimated_effort: parseInt(document.getElementById('estimatedEffort').value) || 1,
-        value_assessor: document.getElementById('valueAssessor').value.trim()
+        value_assessor: document.getElementById('valueAssessor').value.trim(),
+        other_info: document.getElementById('otherInfo').value.trim()
     };
     
     console.log('准备发送的数据:', formData);
     
     // 验证必要字段
-    if (!formData.title || !formData.description) {
-        alert('请填写需求标题和描述');
+    if (!formData.title || !formData.category || !formData.scenario || !formData.problem || !formData.goal) {
+        alert('请填写所有必填字段（标题、类型、场景描述、解决的问题、目标）');
         return;
     }
     
@@ -613,11 +595,16 @@ async function viewRequirement(id) {
         if (requirement) {
             // 填充模态框数据
             document.getElementById('requirementTitle').value = requirement.title || '';
-            document.getElementById('requirementDescription').value = requirement.description || '';
+            document.getElementById('requirementCategory').value = requirement.category || '';
             document.getElementById('requirementSource').value = requirement.source || '';
-            document.getElementById('requirementCategory').value = requirement.category || 'functional';
             document.getElementById('requirementPriority').value = requirement.priority || 'medium';
+            document.getElementById('requirementScenario').value = requirement.scenario || '';
+            document.getElementById('requirementProblem').value = requirement.problem || '';
+            document.getElementById('currentSolution').value = requirement.current_solution || '';
+            document.getElementById('requirementGoal').value = requirement.goal || '';
+            document.getElementById('expectedSolution').value = requirement.expected_solution || '';
             document.getElementById('requirementCriteria').value = requirement.acceptance_criteria || '';
+            document.getElementById('otherInfo').value = requirement.other_info || '';
             
             // 填充价值评估数据
             document.getElementById('estimatedBusinessValue').value = requirement.estimated_business_value || 5;
@@ -656,20 +643,25 @@ async function viewRequirement(id) {
 async function updateRequirement(id) {
     const formData = {
         title: document.getElementById('requirementTitle').value.trim(),
-        description: document.getElementById('requirementDescription').value.trim(),
-        source: document.getElementById('requirementSource').value,
         category: document.getElementById('requirementCategory').value,
+        source: document.getElementById('requirementSource').value,
         priority: document.getElementById('requirementPriority').value,
+        scenario: document.getElementById('requirementScenario').value.trim(),
+        problem: document.getElementById('requirementProblem').value.trim(),
+        current_solution: document.getElementById('currentSolution').value.trim(),
+        goal: document.getElementById('requirementGoal').value.trim(),
+        expected_solution: document.getElementById('expectedSolution').value.trim(),
         acceptance_criteria: document.getElementById('requirementCriteria').value.trim(),
         estimated_business_value: parseInt(document.getElementById('estimatedBusinessValue').value) || 5,
         estimated_user_value: parseInt(document.getElementById('estimatedUserValue').value) || 5,
         estimated_technical_value: parseInt(document.getElementById('estimatedTechnicalValue').value) || 5,
         estimated_effort: parseInt(document.getElementById('estimatedEffort').value) || 1,
-        value_assessor: document.getElementById('valueAssessor').value.trim()
+        value_assessor: document.getElementById('valueAssessor').value.trim(),
+        other_info: document.getElementById('otherInfo').value.trim()
     };
     
-    if (!formData.title || !formData.description) {
-        alert('请填写需求标题和描述');
+    if (!formData.title || !formData.category || !formData.scenario || !formData.problem || !formData.goal) {
+        alert('请填写所有必填字段（标题、类型、场景描述、解决的问题、目标）');
         return;
     }
     
@@ -750,59 +742,6 @@ async function deleteRequirement(id) {
     } catch (error) {
         console.error('删除需求失败:', error);
         alert('删除失败: ' + error.message);
-    }
-}
-
-// 数据诊断功能
-async function diagnoseData() {
-    const debugInfo = document.getElementById('debugInfo');
-    debugInfo.innerHTML = '<p>正在诊断数据问题...</p>';
-    
-    try {
-        const response = await fetch(`/api/diagnose/requirements/{{ project.id }}`);
-        const data = await response.json();
-        
-        if (data.success) {
-            const diagnosis = data.diagnosis;
-            let html = `
-                <h6>数据诊断结果:</h6>
-                <p><strong>项目ID:</strong> ${diagnosis.project_id}</p>
-                <p><strong>项目名称:</strong> ${diagnosis.project_name}</p>
-                <p><strong>数据库总需求数量:</strong> ${diagnosis.total_requirements}</p>
-                <p><strong>正确属于该项目的需求数量:</strong> ${diagnosis.correct_requirements_count}</p>
-                <p><strong>project_id不正确的需求数量:</strong> ${diagnosis.incorrect_requirements_count}</p>
-                <p><strong>孤儿需求数量:</strong> ${diagnosis.orphaned_requirements_count}</p>
-                <p><strong>可能属于该项目的需求数量:</strong> ${diagnosis.potential_requirements_count}</p>
-            `;
-            
-            if (diagnosis.potential_requirements.length > 0) {
-                html += '<p class="text-warning"><strong>发现可能属于该项目但project_id不正确的需求:</strong></p><ul>';
-                diagnosis.potential_requirements.forEach(req => {
-                    html += `<li>ID: ${req.id}, 标题: ${req.title}, 当前ProjectID: ${req.project_id}</li>`;
-                });
-                html += '</ul>';
-                html += '<button class="btn btn-sm btn-danger" onclick="fixData()">尝试修复数据</button>';
-            }
-            
-            debugInfo.innerHTML = html;
-        } else {
-            debugInfo.innerHTML = `<p class="text-danger"><strong>诊断失败:</strong> ${data.error}</p>`;
-        }
-    } catch (error) {
-        debugInfo.innerHTML = `<p class="text-danger"><strong>诊断错误:</strong> ${error.message}</p>`;
-        console.error('诊断数据时出错:', error);
-    }
-}
-
-// 数据修复功能（示例）
-async function fixData() {
-    if (confirm('确定要尝试修复数据吗？这将把可能属于该项目的需求的project_id设置为当前项目ID。')) {
-        const debugInfo = document.getElementById('debugInfo');
-        debugInfo.innerHTML = '<p>正在尝试修复数据...</p>';
-        
-        // 这里应该调用一个后端修复API
-        // 为简化起见，我们只显示提示信息
-        debugInfo.innerHTML = '<p class="text-warning">数据修复功能需要在后端实现。请联系系统管理员或开发人员。</p>';
     }
 }
 
