@@ -23,6 +23,56 @@
     </div>
 </div>
 
+<!-- 需求访谈关键字提示 -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-lightbulb me-2"></i>需求访谈关键字提示
+                    <button class="btn btn-sm btn-outline-primary float-end" type="button" data-bs-toggle="collapse" data-bs-target="#interviewTips">
+                        展开/收起
+                    </button>
+                </h5>
+            </div>
+            <div class="collapse" id="interviewTips">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <h6><i class="fas fa-user-tie me-1"></i>职能职级相关</h6>
+                            <ul class="list-unstyled">
+                                <li><span class="badge bg-info me-1">决策层</span> CEO、CTO、CFO、总监</li>
+                                <li><span class="badge bg-info me-1">管理层</span> 经理、主管、团队负责人</li>
+                                <li><span class="badge bg-info me-1">执行层</span> 工程师、分析师、专员</li>
+                                <li><span class="badge bg-info me-1">支持层</span> 助理、协调员、行政</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="fas fa-users me-1"></i>干系人类型</h6>
+                            <ul class="list-unstyled">
+                                <li><span class="badge bg-success me-1">用户</span> 最终使用者</li>
+                                <li><span class="badge bg-success me-1">客户</span> 付费方</li>
+                                <li><span class="badge bg-success me-1">业务方</span> 业务需求提出者</li>
+                                <li><span class="badge bg-success me-1">技术方</span> 技术实现团队</li>
+                                <li><span class="badge bg-success me-1">监管方</span> 合规、审计等</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="fas fa-comments me-1"></i>访谈问题引导</h6>
+                            <ul class="list-unstyled">
+                                <li><span class="badge bg-warning me-1">痛点</span> 目前遇到什么问题？</li>
+                                <li><span class="badge bg-warning me-1">目标</span> 希望达成什么目标？</li>
+                                <li><span class="badge bg-warning me-1">价值</span> 解决后带来什么价值？</li>
+                                <li><span class="badge bg-warning me-1">场景</span> 在什么场景下使用？</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="row">
     <div class="col-12">
         <div class="card">
@@ -88,7 +138,23 @@
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="stakeholderRole" class="form-label">角色</label>
-                                <input type="text" class="form-control" id="stakeholderRole">
+                                <input type="text" class="form-control" id="stakeholderRole" list="commonRoles">
+                                <datalist id="commonRoles">
+                                    <option value="产品经理">
+                                    <option value="项目经理">
+                                    <option value="开发工程师">
+                                    <option value="测试工程师">
+                                    <option value="UI/UX设计师">
+                                    <option value="运维工程师">
+                                    <option value="业务分析师">
+                                    <option value="市场经理">
+                                    <option value="销售代表">
+                                    <option value="客户">
+                                    <option value="最终用户">
+                                    <option value="部门主管">
+                                    <option value="技术总监">
+                                    <option value="CEO">
+                                </datalist>
                             </div>
                         </div>
                     </div>
@@ -122,7 +188,15 @@
                     
                     <div class="mb-3">
                         <label for="stakeholderRequirements" class="form-label">需求/期望</label>
-                        <textarea class="form-control" id="stakeholderRequirements" rows="3" placeholder="干系人提出的原始需求和期望"></textarea>
+                        <textarea class="form-control" id="stakeholderRequirements" rows="4" placeholder="干系人提出的原始需求和期望"></textarea>
+                        <div class="form-text" id="roleBasedPrompts">
+                            请输入该干系人的需求和期望。根据角色不同，您可以考虑以下问题：
+                            <ul class="mb-0 mt-1">
+                                <li>这个系统将如何帮助您完成工作？</li>
+                                <li>您希望系统具备哪些功能？</li>
+                                <li>目前工作中遇到的主要困难是什么？</li>
+                            </ul>
+                        </div>
                     </div>
                     
                     <div class="mb-3">
@@ -152,6 +226,9 @@
 // 页面加载完成后执行
 document.addEventListener('DOMContentLoaded', function() {
     loadStakeholders();
+    
+    // 为角色输入框添加事件监听器
+    document.getElementById('stakeholderRole').addEventListener('input', updateRoleBasedPrompts);
 });
 
 let matrixChart = null;
@@ -198,6 +275,108 @@ async function loadStakeholders() {
     } catch (error) {
         console.error('加载干系人失败:', error);
     }
+}
+
+// 根据角色更新提示问题
+function updateRoleBasedPrompts() {
+    const role = document.getElementById('stakeholderRole').value.toLowerCase();
+    const promptsContainer = document.getElementById('roleBasedPrompts');
+    
+    let prompts = [];
+    
+    if (role.includes('产品') || role.includes('product')) {
+        prompts = [
+            "您认为产品的核心功能应该是什么？",
+            "目标用户群体有哪些特征？",
+            "产品的关键成功指标是什么？",
+            "竞争对手的产品有哪些优缺点？"
+        ];
+    } else if (role.includes('开发') || role.includes(' engineer') || role.includes('程序员')) {
+        prompts = [
+            "系统需要集成哪些第三方服务？",
+            "对系统性能有什么具体要求？",
+            "希望使用哪些技术栈或框架？",
+            "对代码质量和规范有什么要求？"
+        ];
+    } else if (role.includes('测试') || role.includes('test') || role.includes('qa')) {
+        prompts = [
+            "需要测试哪些关键业务流程？",
+            "对系统稳定性有什么要求？",
+            "希望采用什么测试方法和工具？",
+            "测试环境有哪些特殊需求？"
+        ];
+    } else if (role.includes('设计') || role.includes('design') || role.includes('ui') || role.includes('ux')) {
+        prompts = [
+            "目标用户界面风格偏好是什么？",
+            "有哪些品牌设计规范需要遵循？",
+            "希望实现哪些交互效果？",
+            "对响应式设计有什么要求？"
+        ];
+    } else if (role.includes('运维') || role.includes('ops') || role.includes('operation')) {
+        prompts = [
+            "对系统部署环境有什么要求？",
+            "需要监控哪些关键指标？",
+            "对系统可用性有什么标准？",
+            "备份和恢复策略应该如何制定？"
+        ];
+    } else if (role.includes('市场') || role.includes('market')) {
+        prompts = [
+            "目标市场和用户群体是谁？",
+            "产品的核心卖点是什么？",
+            "需要哪些营销推广工具？",
+            "如何衡量营销活动效果？"
+        ];
+    } else if (role.includes('销售') || role.includes('sale')) {
+        prompts = [
+            "销售过程中遇到的主要困难是什么？",
+            "需要哪些客户管理功能？",
+            "如何跟踪销售机会？",
+            "需要哪些销售报表和分析？"
+        ];
+    } else if (role.includes('客户') || role.includes('customer')) {
+        prompts = [
+            "您希望产品解决什么问题？",
+            "目前使用的解决方案有哪些不足？",
+            "对产品价格有什么预期？",
+            "售后服务有哪些具体要求？"
+        ];
+    } else if (role.includes('用户') || role.includes('user')) {
+        prompts = [
+            "您在使用类似产品时遇到什么问题？",
+            "最希望新系统具备什么功能？",
+            "对界面易用性有什么要求？",
+            "在什么场景下会使用这个系统？"
+        ];
+    } else if (role.includes('主管') || role.includes('经理') || role.includes('manager')) {
+        prompts = [
+            "部门的核心业务目标是什么？",
+            "希望系统如何提升团队效率？",
+            "对项目进度和质量有什么要求？",
+            "预算和资源方面有什么限制？"
+        ];
+    } else if (role.includes('总监') || role.includes('director') || role.includes('cto') || role.includes('cfo') || role.includes('ceo')) {
+        prompts = [
+            "这个项目如何支持公司战略目标？",
+            "对投资回报率有什么预期？",
+            "风险控制方面有哪些考虑？",
+            "对团队资源配置有什么要求？"
+        ];
+    } else {
+        prompts = [
+            "这个系统将如何帮助您完成工作？",
+            "您希望系统具备哪些功能？",
+            "目前工作中遇到的主要困难是什么？",
+            "对系统性能和稳定性有什么要求？"
+        ];
+    }
+    
+    // 更新提示内容
+    promptsContainer.innerHTML = `
+        请输入该干系人的需求和期望。根据角色不同，您可以考虑以下问题：
+        <ul class="mb-0 mt-1">
+            ${prompts.map(prompt => `<li>${prompt}</li>`).join('')}
+        </ul>
+    `;
 }
 
 function getInfluenceBadgeColor(influence) {
@@ -268,6 +447,9 @@ async function editStakeholder(stakeholderId) {
         document.getElementById('stakeholderRequirements').value = stakeholder.requirements || '';
         document.getElementById('stakeholderContact').value = stakeholder.contact_info || '';
         document.getElementById('stakeholderNotes').value = stakeholder.notes || '';
+        
+        // 更新角色相关提示
+        updateRoleBasedPrompts();
         
         // 更改保存按钮行为
         const saveBtn = document.querySelector('#addStakeholderModal .modal-footer .btn-primary');
@@ -367,6 +549,16 @@ document.getElementById('addStakeholderModal').addEventListener('hidden.bs.modal
         saveStakeholder();
     };
     saveBtn.textContent = '保存';
+    
+    // 重置提示内容
+    document.getElementById('roleBasedPrompts').innerHTML = `
+        请输入该干系人的需求和期望。根据角色不同，您可以考虑以下问题：
+        <ul class="mb-0 mt-1">
+            <li>这个系统将如何帮助您完成工作？</li>
+            <li>您希望系统具备哪些功能？</li>
+            <li>目前工作中遇到的主要困难是什么？</li>
+        </ul>
+    `;
 });
 
 // 更新干系人矩阵图
