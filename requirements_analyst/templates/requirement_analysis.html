@@ -28,6 +28,143 @@
     </div>
 </div>
 
+<!-- 分析工具和记录 -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <ul class="nav nav-tabs card-header-tabs" id="analysisTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="tools-tab" data-bs-toggle="tab" data-bs-target="#tools" type="button" role="tab">
+                            <i class="fas fa-tools me-1"></i>分析工具
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="records-tab" data-bs-toggle="tab" data-bs-target="#records" type="button" role="tab">
+                            <i class="fas fa-file-alt me-1"></i>分析记录
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="reports-tab" data-bs-toggle="tab" data-bs-target="#reports" type="button" role="tab">
+                            <i class="fas fa-chart-bar me-1"></i>分析报告
+                        </button>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-body">
+                <div class="tab-content" id="analysisTabsContent">
+                    <!-- 分析工具 -->
+                    <div class="tab-pane fade show active" id="tools" role="tabpanel">
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <div class="card h-100">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-project-diagram fa-2x text-primary mb-3"></i>
+                                        <h5 class="card-title">需求关系图</h5>
+                                        <p class="card-text">可视化需求之间的依赖关系</p>
+                                        <button class="btn btn-outline-primary" onclick="generateDependencyGraph()">
+                                            <i class="fas fa-sitemap me-1"></i>生成关系图
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <div class="card h-100">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-balance-scale fa-2x text-success mb-3"></i>
+                                        <h5 class="card-title">价值评估</h5>
+                                        <p class="card-text">评估需求的业务价值和实现成本</p>
+                                        <a href="{{ url_for('value_assessment', project_id=project.id) }}" class="btn btn-outline-success">
+                                            <i class="fas fa-chart-line me-1"></i>价值评估
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <div class="card h-100">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-clipboard-list fa-2x text-info mb-3"></i>
+                                        <h5 class="card-title">需求检查</h5>
+                                        <p class="card-text">检查需求的完整性和一致性</p>
+                                        <button class="btn btn-outline-info" onclick="checkRequirements()">
+                                            <i class="fas fa-check-circle me-1"></i>检查需求
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 分析记录 -->
+                    <div class="tab-pane fade" id="records" role="tabpanel">
+                        <div class="d-flex justify-content-between mb-3">
+                            <h5>分析活动记录</h5>
+                            <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addRecordModal">
+                                <i class="fas fa-plus me-1"></i>添加记录
+                            </button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>时间</th>
+                                        <th>活动类型</th>
+                                        <th>描述</th>
+                                        <th>参与人</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="analysisRecordsBody">
+                                    <tr>
+                                        <td colspan="4" class="text-center text-muted">暂无分析记录</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- 分析报告 -->
+                    <div class="tab-pane fade" id="reports" role="tabpanel">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">需求状态分布</h5>
+                                        <canvas id="statusChart" height="200"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">需求优先级分布</h5>
+                                        <canvas id="priorityChart" height="200"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">需求类别分布</h5>
+                                        <canvas id="categoryChart" height="200"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">价值ROI分析</h5>
+                                        <canvas id="roiChart" height="200"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="row mb-4">
     <div class="col-md-6">
         <div class="card">
@@ -148,10 +285,223 @@
     </div>
 </div>
 
+<!-- 添加分析记录模态框 -->
+<div class="modal fade" id="addRecordModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">添加分析记录</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="analysisRecordForm">
+                    <div class="mb-3">
+                        <label for="recordType" class="form-label">活动类型</label>
+                        <select class="form-select" id="recordType" required>
+                            <option value="">请选择活动类型</option>
+                            <option value="需求评审">需求评审</option>
+                            <option value="需求分析">需求分析</option>
+                            <option value="价值评估">价值评估</option>
+                            <option value="依赖分析">依赖分析</option>
+                            <option value="冲突解决">冲突解决</option>
+                            <option value="其他">其他</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="recordDescription" class="form-label">描述</label>
+                        <textarea class="form-control" id="recordDescription" rows="3" placeholder="请输入活动描述" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="recordParticipants" class="form-label">参与人</label>
+                        <input type="text" class="form-control" id="recordParticipants" placeholder="请输入参与人（用逗号分隔）">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="saveAnalysisRecord()">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 依赖关系图模态框 -->
+<div class="modal fade" id="dependencyGraphModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">需求依赖关系图</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="dependencyGraphContainer" style="height: 500px;">
+                    <div class="text-center py-5">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">加载中...</span>
+                        </div>
+                        <p class="mt-2">正在生成依赖关系图...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 需求检查结果模态框 -->
+<div class="modal fade" id="checkResultsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">需求检查结果</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="checkResultsContent">
+                    <div class="text-center py-5">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">检查中...</span>
+                        </div>
+                        <p class="mt-2">正在进行需求检查...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vis-network@9.1.2/dist/vis-network.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/vis-network@9.1.2/dist/vis-network.min.css" rel="stylesheet">
 <script>
+// 页面加载完成后初始化图表
+document.addEventListener('DOMContentLoaded', function() {
+    initializeCharts();
+});
+
+function initializeCharts() {
+    // 状态分布图
+    const statusCtx = document.getElementById('statusChart').getContext('2d');
+    new Chart(statusCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['已收集', '分析中', '已确认', '已拒绝', '已完成'],
+            datasets: [{
+                data: [
+                    {{ requirements|selectattr('status', 'equalto', 'collected')|list|length }},
+                    {{ requirements|selectattr('status', 'equalto', 'analyzing')|list|length }},
+                    {{ requirements|selectattr('status', 'equalto', 'confirmed')|list|length }},
+                    {{ requirements|selectattr('status', 'equalto', 'rejected')|list|length }},
+                    {{ requirements|selectattr('status', 'equalto', 'completed')|list|length }}
+                ],
+                backgroundColor: [
+                    '#0d6efd',
+                    '#6610f2',
+                    '#198754',
+                    '#dc3545',
+                    '#20c997'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+    
+    // 优先级分布图
+    const priorityCtx = document.getElementById('priorityChart').getContext('2d');
+    new Chart(priorityCtx, {
+        type: 'bar',
+        data: {
+            labels: ['高', '中', '低'],
+            datasets: [{
+                label: '需求数量',
+                data: [
+                    {{ requirements|selectattr('priority', 'equalto', 'high')|list|length }},
+                    {{ requirements|selectattr('priority', 'equalto', 'medium')|list|length }},
+                    {{ requirements|selectattr('priority', 'equalto', 'low')|list|length }}
+                ],
+                backgroundColor: [
+                    '#dc3545',
+                    '#ffc107',
+                    '#20c997'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+    
+    // 类别分布图
+    const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+    new Chart(categoryCtx, {
+        type: 'pie',
+        data: {
+            labels: ['功能', '非功能', '业务', '用户'],
+            datasets: [{
+                data: [
+                    {{ requirements|selectattr('category', 'equalto', 'functional')|list|length }},
+                    {{ requirements|selectattr('category', 'equalto', 'non-functional')|list|length }},
+                    {{ requirements|selectattr('category', 'equalto', 'business')|list|length }},
+                    {{ requirements|selectattr('category', 'equalto', 'user')|list|length }}
+                ],
+                backgroundColor: [
+                    '#0d6efd',
+                    '#6f42c1',
+                    '#d63384',
+                    '#fd7e14'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+    
+    // ROI分析图
+    const roiCtx = document.getElementById('roiChart').getContext('2d');
+    const roiData = {{ requirements|map(attribute='estimated_roi')|list }};
+    const roiLabels = {{ requirements|map(attribute='title')|list }};
+    
+    new Chart(roiCtx, {
+        type: 'bar',
+        data: {
+            labels: roiLabels.slice(0, 10), // 只显示前10个需求
+            datasets: [{
+                label: '预估ROI',
+                data: roiData.slice(0, 10),
+                backgroundColor: '#198754'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}
+
 function filterRequirements(filterType) {
     const rows = document.querySelectorAll('.requirement-row');
     
@@ -289,6 +639,351 @@ async function viewRequirement(requirementId) {
         console.error('查看需求详情失败:', error);
         RequirementsAnalyst.showToast('加载失败', 'danger');
     }
+}
+
+// 生成依赖关系图
+async function generateDependencyGraph() {
+    // 显示模态框
+    const modal = new bootstrap.Modal(document.getElementById('dependencyGraphModal'));
+    modal.show();
+    
+    try {
+        // 模拟从API获取需求数据
+        const response = await fetch(`/api/project/${{ project.id }}/requirements`);
+        const requirements = await response.json();
+        
+        // 构建节点和边
+        const nodes = [];
+        const edges = [];
+        
+        // 创建节点
+        requirements.forEach(req => {
+            nodes.push({
+                id: req.id,
+                label: req.title,
+                title: `${req.title}\n优先级: ${getPriorityText(req.priority)}\n状态: ${getStatusText(req.status)}`,
+                color: getRequirementColor(req.priority, req.status)
+            });
+        });
+        
+        // 创建一些示例边（在实际应用中，这些应该来自需求的依赖关系数据）
+        if (requirements.length > 1) {
+            for (let i = 0; i < Math.min(5, requirements.length - 1); i++) {
+                edges.push({
+                    from: requirements[i].id,
+                    to: requirements[i + 1].id,
+                    arrows: 'to',
+                    label: '依赖'
+                });
+            }
+        }
+        
+        // 创建网络图
+        const container = document.getElementById('dependencyGraphContainer');
+        container.innerHTML = '<div id="network" style="height: 500px;"></div>';
+        
+        const data = {
+            nodes: new vis.DataSet(nodes),
+            edges: new vis.DataSet(edges)
+        };
+        
+        const options = {
+            layout: {
+                hierarchical: {
+                    direction: 'LR'
+                }
+            },
+            nodes: {
+                shape: 'box'
+            },
+            edges: {
+                arrows: {
+                    to: {enabled: true, scaleFactor: 1}
+                },
+                smooth: false
+            },
+            physics: {
+                enabled: true
+            }
+        };
+        
+        const network = new vis.Network(document.getElementById('network'), data, options);
+        
+    } catch (error) {
+        console.error('生成依赖关系图失败:', error);
+        document.getElementById('dependencyGraphContainer').innerHTML = 
+            '<div class="alert alert-danger">生成依赖关系图失败: ' + error.message + '</div>';
+    }
+}
+
+// 获取需求颜色（根据优先级和状态）
+function getRequirementColor(priority, status) {
+    if (status === 'completed') return '#28a745'; // 绿色
+    if (status === 'rejected') return '#dc3545'; // 红色
+    
+    switch (priority) {
+        case 'high': return '#dc3545'; // 红色
+        case 'medium': return '#ffc107'; // 黄色
+        case 'low': return '#20c997'; // 青色
+        default: return '#007bff'; // 蓝色
+    }
+}
+
+// 需求检查功能
+async function checkRequirements() {
+    // 显示模态框
+    const modal = new bootstrap.Modal(document.getElementById('checkResultsModal'));
+    modal.show();
+    
+    try {
+        // 模拟从API获取需求数据
+        const response = await fetch(`/api/project/${{ project.id }}/requirements`);
+        const requirements = await response.json();
+        
+        // 执行检查
+        const checkResults = performRequirementChecks(requirements);
+        
+        // 显示结果
+        displayCheckResults(checkResults);
+        
+    } catch (error) {
+        console.error('需求检查失败:', error);
+        document.getElementById('checkResultsContent').innerHTML = 
+            '<div class="alert alert-danger">需求检查失败: ' + error.message + '</div>';
+    }
+}
+
+// 执行需求检查
+function performRequirementChecks(requirements) {
+    const results = {
+        total: requirements.length,
+        issues: []
+    };
+    
+    requirements.forEach(req => {
+        // 检查标题
+        if (!req.title || req.title.trim().length === 0) {
+            results.issues.push({
+                requirementId: req.id,
+                requirementTitle: req.title || '未命名需求',
+                issue: '需求标题为空',
+                severity: 'high'
+            });
+        } else if (req.title.length < 5) {
+            results.issues.push({
+                requirementId: req.id,
+                requirementTitle: req.title,
+                issue: '需求标题过短',
+                severity: 'medium'
+            });
+        }
+        
+        // 检查描述
+        if (!req.description || req.description.trim().length === 0) {
+            results.issues.push({
+                requirementId: req.id,
+                requirementTitle: req.title || '未命名需求',
+                issue: '需求描述为空',
+                severity: 'high'
+            });
+        } else if (req.description.length < 20) {
+            results.issues.push({
+                requirementId: req.id,
+                requirementTitle: req.title,
+                issue: '需求描述过于简短',
+                severity: 'medium'
+            });
+        }
+        
+        // 检查验收标准
+        if (!req.acceptance_criteria || req.acceptance_criteria.trim().length === 0) {
+            results.issues.push({
+                requirementId: req.id,
+                requirementTitle: req.title,
+                issue: '缺少验收标准',
+                severity: 'medium'
+            });
+        }
+        
+        // 检查优先级
+        if (!req.priority || req.priority === 'medium') {
+            results.issues.push({
+                requirementId: req.id,
+                requirementTitle: req.title,
+                issue: '未设置优先级或使用默认优先级',
+                severity: 'low'
+            });
+        }
+        
+        // 检查类别
+        if (!req.category || req.category === 'functional') {
+            results.issues.push({
+                requirementId: req.id,
+                requirementTitle: req.title,
+                issue: '未设置类别或使用默认类别',
+                severity: 'low'
+            });
+        }
+    });
+    
+    return results;
+}
+
+// 显示检查结果
+function displayCheckResults(results) {
+    const container = document.getElementById('checkResultsContent');
+    
+    if (results.issues.length === 0) {
+        container.innerHTML = `
+            <div class="alert alert-success">
+                <h5><i class="fas fa-check-circle"></i> 检查完成</h5>
+                <p>共检查 ${results.total} 个需求，未发现问题。</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // 按严重程度分组
+    const highIssues = results.issues.filter(issue => issue.severity === 'high');
+    const mediumIssues = results.issues.filter(issue => issue.severity === 'medium');
+    const lowIssues = results.issues.filter(issue => issue.severity === 'low');
+    
+    let html = `
+        <div class="alert alert-warning">
+            <h5><i class="fas fa-exclamation-triangle"></i> 检查完成</h5>
+            <p>共检查 ${results.total} 个需求，发现 ${results.issues.length} 个问题。</p>
+        </div>
+        
+        <div class="accordion" id="checkResultsAccordion">
+    `;
+    
+    if (highIssues.length > 0) {
+        html += `
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="highIssuesHeading">
+                    <button class="accordion-button bg-danger text-white" type="button" data-bs-toggle="collapse" data-bs-target="#highIssues">
+                        高严重性问题 (${highIssues.length})
+                    </button>
+                </h2>
+                <div id="highIssues" class="accordion-collapse collapse show" data-bs-parent="#checkResultsAccordion">
+                    <div class="accordion-body">
+                        <ul class="list-group">
+        `;
+        
+        highIssues.forEach(issue => {
+            html += `
+                <li class="list-group-item d-flex justify-content-between align-items-start">
+                    <div class="ms-2 me-auto">
+                        <div class="fw-bold">${escapeHtml(issue.requirementTitle)}</div>
+                        ${escapeHtml(issue.issue)}
+                    </div>
+                    <button class="btn btn-sm btn-outline-primary" onclick="viewRequirement(${issue.requirementId})">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                </li>
+            `;
+        });
+        
+        html += `
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    if (mediumIssues.length > 0) {
+        html += `
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="mediumIssuesHeading">
+                    <button class="accordion-button bg-warning text-dark" type="button" data-bs-toggle="collapse" data-bs-target="#mediumIssues">
+                        中严重性问题 (${mediumIssues.length})
+                    </button>
+                </h2>
+                <div id="mediumIssues" class="accordion-collapse collapse show" data-bs-parent="#checkResultsAccordion">
+                    <div class="accordion-body">
+                        <ul class="list-group">
+        `;
+        
+        mediumIssues.forEach(issue => {
+            html += `
+                <li class="list-group-item d-flex justify-content-between align-items-start">
+                    <div class="ms-2 me-auto">
+                        <div class="fw-bold">${escapeHtml(issue.requirementTitle)}</div>
+                        ${escapeHtml(issue.issue)}
+                    </div>
+                    <button class="btn btn-sm btn-outline-primary" onclick="viewRequirement(${issue.requirementId})">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                </li>
+            `;
+        });
+        
+        html += `
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    if (lowIssues.length > 0) {
+        html += `
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="lowIssuesHeading">
+                    <button class="accordion-button bg-info text-dark" type="button" data-bs-toggle="collapse" data-bs-target="#lowIssues">
+                        低严重性问题 (${lowIssues.length})
+                    </button>
+                </h2>
+                <div id="lowIssues" class="accordion-collapse collapse show" data-bs-parent="#checkResultsAccordion">
+                    <div class="accordion-body">
+                        <ul class="list-group">
+        `;
+        
+        lowIssues.forEach(issue => {
+            html += `
+                <li class="list-group-item d-flex justify-content-between align-items-start">
+                    <div class="ms-2 me-auto">
+                        <div class="fw-bold">${escapeHtml(issue.requirementTitle)}</div>
+                        ${escapeHtml(issue.issue)}
+                    </div>
+                    <button class="btn btn-sm btn-outline-primary" onclick="viewRequirement(${issue.requirementId})">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                </li>
+            `;
+        });
+        
+        html += `
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    html += `
+        </div>
+    `;
+    
+    container.innerHTML = html;
+}
+
+// 保存分析记录
+function saveAnalysisRecord() {
+    const type = document.getElementById('recordType').value;
+    const description = document.getElementById('recordDescription').value;
+    const participants = document.getElementById('recordParticipants').value;
+    
+    if (!type || !description) {
+        RequirementsAnalyst.showToast('请填写必填字段', 'warning');
+        return;
+    }
+    
+    // 这里应该发送请求保存记录，暂时只显示成功消息
+    RequirementsAnalyst.showToast('分析记录保存成功', 'success');
+    bootstrap.Modal.getInstance(document.getElementById('addRecordModal')).hide();
+    document.getElementById('analysisRecordForm').reset();
 }
 
 function escapeHtml(text) {
