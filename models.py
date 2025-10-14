@@ -1,4 +1,4 @@
-# models.py - 修复后的模型
+# models.py
 from database import db
 from datetime import datetime
 
@@ -75,6 +75,72 @@ class Requirement(db.Model):
     actual_value_assessor = db.Column(db.String(100))            # 实际价值评估人
     actual_value_assessment_date = db.Column(db.DateTime)        # 实际价值评估日期 
     
+    # 计划相关字段
+    expected_completion_date = db.Column(db.Date)                # 期望完成日期
+    assigned_milestone_id = db.Column(db.Integer, db.ForeignKey('milestones.id'))  # 分配的里程碑
+    
+    # 用户相关字段 (支持"看用户")
+    user_research_data = db.Column(db.Text)           # 用户调研数据
+    user_feedback = db.Column(db.Text)                # 用户反馈
+    user_satisfaction = db.Column(db.Integer)         # 用户满意度评分 (1-10)
+    target_user_group = db.Column(db.String(100))     # 目标用户群体
+    
+    # 竞品分析字段 (支持"拆竞品")
+    competitor_analysis = db.Column(db.Text)          # 竞品分析
+    competitor_products = db.Column(db.String(200))   # 相关竞品列表
+    competitive_advantage = db.Column(db.Text)        # 竞争优势
+    
+    # 市场分析字段 (支持"盯市场")
+    market_research = db.Column(db.Text)              # 市场调研数据
+    market_size = db.Column(db.String(50))            # 市场规模
+    market_trends = db.Column(db.Text)                # 市场趋势
+    
+    # 现状分析字段 (支持"查现状")
+    current_state_analysis = db.Column(db.Text)       # 当前产品状态分析
+    product_lifecycle_stage = db.Column(db.String(50)) # 产品生命周期阶段
+    technical_constraints = db.Column(db.Text)         # 技术约束条件
+    resource_constraints = db.Column(db.Text)          # 资源约束条件
+    
+    # 规划相关字段 (支持"定规划")
+    short_term_plan = db.Column(db.Text)              # 短期规划
+    medium_term_plan = db.Column(db.Text)             # 中期规划
+    long_term_plan = db.Column(db.Text)               # 长期规划
+    strategic_alignment = db.Column(db.Text)           # 战略对齐说明
+    
+    # 风险评估字段
+    risk_assessment = db.Column(db.Text)              # 风险评估
+    technical_risks = db.Column(db.Text)              # 技术风险
+    business_risks = db.Column(db.Text)               # 业务风险
+    implementation_risks = db.Column(db.Text)         # 实施风险
+    
+    # 成本效益分析字段 (支持成本收益评估)
+    development_cost_estimate = db.Column(db.Integer) # 开发成本估算
+    operational_cost_estimate = db.Column(db.Integer) # 运营成本估算
+    expected_revenue = db.Column(db.Integer)          # 预期收益
+    cost_benefit_analysis = db.Column(db.Text)        # 成本效益分析
+    
+    # 其他分析字段
+    implementation_priority = db.Column(db.String(20)) # 实施优先级
+    dependencies = db.Column(db.Text)                  # 依赖关系
+    alternative_solutions = db.Column(db.Text)         # 替代方案
+    success_metrics = db.Column(db.Text)               # 成功指标
+    
+    @property
+    def description(self):
+        """
+        构建完整的需求描述，将多个字段组合成一个描述文本
+        """
+        parts = []
+        if self.scenario:
+            parts.append(self.scenario)
+        if self.problem:
+            parts.append(self.problem)
+        if self.goal:
+            parts.append(self.goal)
+        if self.current_solution:
+            parts.append(self.current_solution)
+        return ' '.join(parts) if parts else ''
+
 class Milestone(db.Model):
     __tablename__ = 'milestones'
     
@@ -87,3 +153,6 @@ class Milestone(db.Model):
     requirements = db.Column(db.Text)  # 关联的需求ID列表
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # 关系
+    assigned_requirements = db.relationship('Requirement', backref='milestone', lazy=True)

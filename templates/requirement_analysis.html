@@ -28,179 +28,37 @@
     </div>
 </div>
 
-<!-- 分析工具和记录 -->
-<div class="row mb-4">
+<div class="row mb-3">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <ul class="nav nav-tabs card-header-tabs" id="analysisTabs" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="tools-tab" data-bs-toggle="tab" data-bs-target="#tools" type="button" role="tab">
-                            <i class="fas fa-tools me-1"></i>分析工具
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="records-tab" data-bs-toggle="tab" data-bs-target="#records" type="button" role="tab">
-                            <i class="fas fa-file-alt me-1"></i>分析记录
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="reports-tab" data-bs-toggle="tab" data-bs-target="#reports" type="button" role="tab">
-                            <i class="fas fa-chart-bar me-1"></i>分析报告
-                        </button>
-                    </li>
-                </ul>
-            </div>
+        <div class="card bg-light">
             <div class="card-body">
-                <div class="tab-content" id="analysisTabsContent">
-                    <!-- 分析工具 -->
-                    <div class="tab-pane fade show active" id="tools" role="tabpanel">
-                        <div class="row">
-                            <div class="col-md-4 mb-3">
-                                <div class="card h-100">
-                                    <div class="card-body text-center">
-                                        <i class="fas fa-project-diagram fa-2x text-primary mb-3"></i>
-                                        <h5 class="card-title">需求关系图</h5>
-                                        <p class="card-text">可视化需求之间的依赖关系</p>
-                                        <button class="btn btn-outline-primary" onclick="generateDependencyGraph()">
-                                            <i class="fas fa-sitemap me-1"></i>生成关系图
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <div class="card h-100">
-                                    <div class="card-body text-center">
-                                        <i class="fas fa-balance-scale fa-2x text-success mb-3"></i>
-                                        <h5 class="card-title">价值评估</h5>
-                                        <p class="card-text">评估需求的业务价值和实现成本</p>
-                                        <a href="{{ url_for('value_assessment', project_id=project.id) }}" class="btn btn-outline-success">
-                                            <i class="fas fa-chart-line me-1"></i>价值评估
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <div class="card h-100">
-                                    <div class="card-body text-center">
-                                        <i class="fas fa-clipboard-list fa-2x text-info mb-3"></i>
-                                        <h5 class="card-title">需求检查</h5>
-                                        <p class="card-text">检查需求的完整性和一致性</p>
-                                        <button class="btn btn-outline-info" onclick="checkRequirements()">
-                                            <i class="fas fa-check-circle me-1"></i>检查需求
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                <h5 class="card-title">需求分析要点</h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <ol>
+                            <li><strong>析要素</strong> - 分析需求基础要素。需求要素包括需求的类型、场景、解决问题、目标、需求价值、优先级、预期解决方案等。一丝错误的信息，比如目标不清楚，场景不正确等的偏差，都会影响我们对需求的评判。</li>
+                            <li><strong>挖场景</strong> - 挖掘需求对应的场景。脱离了场景谈需求是不合适的。用户+场景=需求，充分挖掘需求所对应发生的场景，从而了解用户真实的问题，才能够得到合适的解决方案。</li>
+                            <li><strong>推价值</strong> - 推敲需求价值。从用户、产品、企业三个维度分析需求价值：用户价值（给用户提升了什么价值）、功能价值（提升了产品的什么功能指标）、商业价值（提升了企业哪部分的收益）。</li>
+                            <li><strong>看用户</strong> - 对待用户对于该需求的看法，了解以及使用情况。一般采用用户问卷调研、用户访谈的方式，通过直接接触用户，得到最真实的用户感受。</li>
+                        </ol>
                     </div>
-                    
-                    <!-- 分析记录 -->
-                    <div class="tab-pane fade" id="records" role="tabpanel">
-                        <div class="d-flex justify-content-between mb-3">
-                            <h5>分析活动记录</h5>
-                            <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addRecordModal">
-                                <i class="fas fa-plus me-1"></i>添加记录
-                            </button>
-                        </div>
-                        <div class="table-responsive">
-                            <table class="table table-striped">
-                                <thead>
-                                    <tr>
-                                        <th>时间</th>
-                                        <th>活动类型</th>
-                                        <th>描述</th>
-                                        <th>参与人</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="analysisRecordsBody">
-                                    <tr>
-                                        <td colspan="4" class="text-center text-muted">暂无分析记录</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                    
-                    <!-- 分析报告 -->
-                    <div class="tab-pane fade" id="reports" role="tabpanel">
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <div class="card">
-                                    <div class="card-body">
-                                        <h5 class="card-title">需求状态分布</h5>
-                                        <canvas id="statusChart" height="200"></canvas>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <div class="card">
-                                    <div class="card-body">
-                                        <h5 class="card-title">需求优先级分布</h5>
-                                        <canvas id="priorityChart" height="200"></canvas>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <div class="card">
-                                    <div class="card-body">
-                                        <h5 class="card-title">需求类别分布</h5>
-                                        <canvas id="categoryChart" height="200"></canvas>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <div class="card">
-                                    <div class="card-body">
-                                        <h5 class="card-title">价值ROI分析</h5>
-                                        <canvas id="roiChart" height="200"></canvas>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="col-md-6">
+                        <ol start="5">
+                            <li><strong>拆竞品</strong> - 拆解分析竞品（包括直接竞品、间接竞品）的现状，从竞品的角度去分析对应需求的作用，借此达到管中窥豹的目的。</li>
+                            <li><strong>盯市场</strong> - 紧盯市场动向，对于该需求，摸清市场上的看法以及各大产品各自的发展迭代逻辑，通过市场的反馈及发展，剖析该需求所对应的业务的长久规划。</li>
+                            <li><strong>查现状</strong> - 摸查产品目前现状。产品经理对当前产品业务的了解程度越高，在分析时结合自身产品业务的现状来分析，便能够极大地减少判断错误的概率。</li>
+                            <li><strong>定规划</strong> - 确定需求所对应业务的短期、中期、长期规划。根据规划，了解当前需求解决的问题，处在规划的哪一部分。</li>
+                        </ol>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="row mb-4">
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">优先级分布</h5>
-            </div>
-            <div class="card-body">
-                <ul class="list-group">
-                    {% for priority, count in priority_stats.items() %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        {{ priority|title }}
-                        <span class="badge bg-primary rounded-pill">{{ count }}</span>
-                    </li>
-                    {% else %}
-                    <li class="list-group-item text-muted">暂无需求数据</li>
-                    {% endfor %}
-                </ul>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">类别分布</h5>
-            </div>
-            <div class="card-body">
-                <ul class="list-group">
-                    {% for category, count in category_stats.items() %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        {{ category|title }}
-                        <span class="badge bg-info rounded-pill">{{ count }}</span>
-                    </li>
-                    {% else %}
-                    <li class="list-group-item text-muted">暂无需求数据</li>
-                    {% endfor %}
-                </ul>
+                <div class="mt-3">
+                    <h6>需求其余条件评估：</h6>
+                    <ul>
+                        <li>需求是否符合当前产品发展的方向规划？</li>
+                        <li>需求对于平台其他业务有什么联动影响吗？</li>
+                        <li>如果做了这个需求，成本层面与收益层面是否成正比？</li>
+                    </ul>
+                </div>
             </div>
         </div>
     </div>
@@ -210,46 +68,48 @@
     <div class="col-12">
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">需求分析看板</h5>
-                <div class="btn-group">
-                    <button class="btn btn-sm btn-outline-secondary active" onclick="filterRequirements('all')">全部</button>
-                    <button class="btn btn-sm btn-outline-secondary" onclick="filterRequirements('high')">高优先级</button>
-                    <button class="btn btn-sm btn-outline-secondary" onclick="filterRequirements('functional')">功能需求</button>
-                </div>
+                <h5 class="mb-0">需求列表</h5>
+                <a href="{{ url_for('requirement_collection', project_id=project.id) }}" class="btn btn-sm btn-primary">
+                    <i class="fas fa-plus me-1"></i>添加需求
+                </a>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
                     <table class="table table-hover">
                         <thead>
                             <tr>
-                                <th width="30%">需求标题</th>
-                                <th width="10%">优先级</th>
-                                <th width="10%">类别</th>
-                                <th width="15%">状态</th>
-                                <th width="25%">验收标准</th>
-                                <th width="10%">操作</th>
+                                <th>需求标题</th>
+                                <th>类别</th>
+                                <th>优先级</th>
+                                <th>状态</th>
+                                <th>操作</th>
                             </tr>
                         </thead>
-                        <tbody id="requirementsBody">
+                        <tbody>
                             {% for requirement in requirements %}
-                            <tr class="requirement-row" data-priority="{{ requirement.priority }}" data-category="{{ requirement.category }}">
+                            <tr>
                                 <td>
                                     <strong>{{ requirement.title }}</strong>
                                     <br>
-                                    <small class="text-muted">{{ requirement.description[:100] }}{% if requirement.description|length > 100 %}...{% endif %}</small>
+                                    <small class="text-muted">
+                                        {{ (requirement.scenario or '')[:80] }}
+                                        {% if (requirement.scenario or '')|length > 80 %}...{% endif %}
+                                    </small>
                                 </td>
                                 <td>
-                                    <select class="form-select form-select-sm" onchange="updateRequirementPriority({{ requirement.id }}, this.value)">
-                                        <option value="high" {% if requirement.priority == 'high' %}selected{% endif %}>高</option>
-                                        <option value="medium" {% if requirement.priority == 'medium' %}selected{% endif %}>中</option>
+                                    <span class="badge bg-secondary">{{ requirement.category or '未分类' }}</span>
+                                </td>
+                                <td>
+                                    <select class="form-select form-select-sm priority-select" 
+                                            data-requirement-id="{{ requirement.id }}">
                                         <option value="low" {% if requirement.priority == 'low' %}selected{% endif %}>低</option>
+                                        <option value="medium" {% if requirement.priority == 'medium' %}selected{% endif %}>中</option>
+                                        <option value="high" {% if requirement.priority == 'high' %}selected{% endif %}>高</option>
                                     </select>
                                 </td>
                                 <td>
-                                    <span class="badge bg-secondary">{{ requirement.category }}</span>
-                                </td>
-                                <td>
-                                    <select class="form-select form-select-sm" onchange="updateRequirementStatus({{ requirement.id }}, this.value)">
+                                    <select class="form-select form-select-sm status-select" 
+                                            data-requirement-id="{{ requirement.id }}">
                                         <option value="collected" {% if requirement.status == 'collected' %}selected{% endif %}>已收集</option>
                                         <option value="analyzing" {% if requirement.status == 'analyzing' %}selected{% endif %}>分析中</option>
                                         <option value="confirmed" {% if requirement.status == 'confirmed' %}selected{% endif %}>已确认</option>
@@ -258,17 +118,15 @@
                                     </select>
                                 </td>
                                 <td>
-                                    <small>{{ requirement.acceptance_criteria[:80] or '暂无' }}{% if requirement.acceptance_criteria and requirement.acceptance_criteria|length > 80 %}...{% endif %}</small>
-                                </td>
-                                <td>
-                                    <button class="btn btn-sm btn-outline-primary" onclick="viewRequirement({{ requirement.id }})">
-                                        <i class="fas fa-edit"></i>
+                                    <button class="btn btn-sm btn-outline-primary edit-btn" 
+                                            data-requirement-id="{{ requirement.id }}">
+                                        <i class="fas fa-edit"></i> 编辑
                                     </button>
                                 </td>
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="6" class="text-center text-muted py-4">
+                                <td colspan="5" class="text-center text-muted py-4">
                                     <i class="fas fa-inbox fa-2x mb-2"></i>
                                     <p>暂无需求数据</p>
                                     <a href="{{ url_for('requirement_collection', project_id=project.id) }}" class="btn btn-sm btn-primary">
@@ -285,91 +143,305 @@
     </div>
 </div>
 
-<!-- 添加分析记录模态框 -->
-<div class="modal fade" id="addRecordModal" tabindex="-1">
-    <div class="modal-dialog">
+<!-- 编辑需求模态框 -->
+<div class="modal fade" id="editRequirementModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">添加分析记录</h5>
+                <h5 class="modal-title">编辑需求</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <form id="analysisRecordForm">
-                    <div class="mb-3">
-                        <label for="recordType" class="form-label">活动类型</label>
-                        <select class="form-select" id="recordType" required>
-                            <option value="">请选择活动类型</option>
-                            <option value="需求评审">需求评审</option>
-                            <option value="需求分析">需求分析</option>
-                            <option value="价值评估">价值评估</option>
-                            <option value="依赖分析">依赖分析</option>
-                            <option value="冲突解决">冲突解决</option>
-                            <option value="其他">其他</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="recordDescription" class="form-label">描述</label>
-                        <textarea class="form-control" id="recordDescription" rows="3" placeholder="请输入活动描述" required></textarea>
-                    </div>
-                    <div class="mb-3">
-                        <label for="recordParticipants" class="form-label">参与人</label>
-                        <input type="text" class="form-control" id="recordParticipants" placeholder="请输入参与人（用逗号分隔）">
+                <ul class="nav nav-tabs" id="analysisTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="basic-tab" data-bs-toggle="tab" data-bs-target="#basic" type="button">基本信息</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="user-tab" data-bs-toggle="tab" data-bs-target="#user" type="button">用户分析</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="competitor-tab" data-bs-toggle="tab" data-bs-target="#competitor" type="button">竞品分析</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="market-tab" data-bs-toggle="tab" data-bs-target="#market" type="button">市场分析</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="current-tab" data-bs-toggle="tab" data-bs-target="#current" type="button">现状分析</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="risk-tab" data-bs-toggle="tab" data-bs-target="#risk" type="button">风险评估</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="other-tab" data-bs-toggle="tab" data-bs-target="#other" type="button">其他分析</button>
+                    </li>
+                </ul>
+                
+                <form id="editRequirementForm">
+                    <input type="hidden" id="editRequirementId">
+                    <div class="tab-content mt-3" id="analysisTabContent">
+                        <!-- 基本信息 -->
+                        <div class="tab-pane fade show active" id="basic" role="tabpanel">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <div class="mb-3">
+                                        <label for="editRequirementTitle" class="form-label">需求标题 *</label>
+                                        <input type="text" class="form-control" id="editRequirementTitle" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="editRequirementPriority" class="form-label">优先级</label>
+                                        <select class="form-select" id="editRequirementPriority">
+                                            <option value="low">低</option>
+                                            <option value="medium" selected>中</option>
+                                            <option value="high">高</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="editRequirementCategory" class="form-label">需求类型 *</label>
+                                        <select class="form-select" id="editRequirementCategory" required>
+                                            <option value="">选择类型...</option>
+                                            <option value="functional">功能需求</option>
+                                            <option value="non-functional">非功能需求</option>
+                                            <option value="business">业务需求</option>
+                                            <option value="user">用户需求</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="editRequirementStatus" class="form-label">状态</label>
+                                        <select class="form-select" id="editRequirementStatus">
+                                            <option value="collected">已收集</option>
+                                            <option value="analyzing">分析中</option>
+                                            <option value="confirmed">已确认</option>
+                                            <option value="rejected">已拒绝</option>
+                                            <option value="completed">已完成</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="editRequirementType" class="form-label">需求类型细分</label>
+                                        <input type="text" class="form-control" id="editRequirementType" placeholder="如：新增、优化、修复等">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="editRequirementSource" class="form-label">需求来源</label>
+                                        <input type="text" class="form-control" id="editRequirementSource" placeholder="如：用户反馈、市场调研等">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="editRequirementScenario" class="form-label">场景描述 *</label>
+                                <textarea class="form-control" id="editRequirementScenario" rows="3" required placeholder="描述用户使用场景，包括时间、地点、人物、事件等"></textarea>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="editCurrentSolution" class="form-label">当前解决方案</label>
+                                <textarea class="form-control" id="editCurrentSolution" rows="2" placeholder="目前是如何解决这个问题的"></textarea>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="editRequirementProblem" class="form-label">解决的问题 *</label>
+                                <textarea class="form-control" id="editRequirementProblem" rows="3" required placeholder="明确指出该需求要解决的具体问题"></textarea>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="editRequirementGoal" class="form-label">目标 *</label>
+                                <textarea class="form-control" id="editRequirementGoal" rows="2" required placeholder="描述完成该需求后要达成的目标"></textarea>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="editExpectedSolution" class="form-label">预期解决方案</label>
+                                <textarea class="form-control" id="editExpectedSolution" rows="2" placeholder="描述期望的解决方案"></textarea>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="editRequirementValue" class="form-label">需求价值</label>
+                                <textarea class="form-control" id="editRequirementValue" rows="2" placeholder="描述该需求带来的价值，可从用户、产品、商业角度分析"></textarea>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="editPriorityLevel" class="form-label">优先级细分</label>
+                                        <select class="form-select" id="editPriorityLevel">
+                                            <option value="low">低</option>
+                                            <option value="medium" selected>中</option>
+                                            <option value="high">高</option>
+                                            <option value="critical">紧急</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="editExpectedCompletionDate" class="form-label">期望完成日期</label>
+                                        <input type="date" class="form-control" id="editExpectedCompletionDate">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="editAcceptanceCriteria" class="form-label">验收标准</label>
+                                <textarea class="form-control" id="editAcceptanceCriteria" rows="2" placeholder="描述验收该需求的标准"></textarea>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="editOtherInfo" class="form-label">其他信息</label>
+                                <textarea class="form-control" id="editOtherInfo" rows="2" placeholder="其他需要说明的信息"></textarea>
+                            </div>
+                        </div>
+                        
+                        <!-- 用户分析 -->
+                        <div class="tab-pane fade" id="user" role="tabpanel">
+                            <div class="mb-3">
+                                <label for="editTargetUserGroup" class="form-label">目标用户群体</label>
+                                <input type="text" class="form-control" id="editTargetUserGroup" placeholder="描述该需求的目标用户群体">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="editUserResearchData" class="form-label">用户调研数据</label>
+                                <textarea class="form-control" id="editUserResearchData" rows="3" placeholder="记录用户调研的结果"></textarea>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="editUserFeedback" class="form-label">用户反馈</label>
+                                <textarea class="form-control" id="editUserFeedback" rows="3" placeholder="记录用户的反馈信息"></textarea>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="editUserSatisfaction" class="form-label">用户满意度评分 (1-10分)</label>
+                                <input type="range" class="form-range" id="editUserSatisfaction" min="1" max="10" value="5">
+                                <div class="d-flex justify-content-between">
+                                    <small>1分 (非常不满意)</small>
+                                    <span id="userSatisfactionDisplay">5分</span>
+                                    <small>10分 (非常满意)</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 竞品分析 -->
+                        <div class="tab-pane fade" id="competitor" role="tabpanel">
+                            <div class="mb-3">
+                                <label for="editCompetitorAnalysis" class="form-label">竞品分析</label>
+                                <textarea class="form-control" id="editCompetitorAnalysis" rows="3" placeholder="分析竞品的相关功能和特点"></textarea>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="editCompetitorProducts" class="form-label">相关竞品列表</label>
+                                <input type="text" class="form-control" id="editCompetitorProducts" placeholder="列出相关的竞品名称">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="editCompetitiveAdvantage" class="form-label">竞争优势</label>
+                                <textarea class="form-control" id="editCompetitiveAdvantage" rows="2" placeholder="描述我们的产品相比竞品的优势"></textarea>
+                            </div>
+                        </div>
+                        
+                        <!-- 市场分析 -->
+                        <div class="tab-pane fade" id="market" role="tabpanel">
+                            <div class="mb-3">
+                                <label for="editMarketResearch" class="form-label">市场调研数据</label>
+                                <textarea class="form-control" id="editMarketResearch" rows="3" placeholder="记录市场调研的结果"></textarea>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="editMarketSize" class="form-label">市场规模</label>
+                                <input type="text" class="form-control" id="editMarketSize" placeholder="描述目标市场的规模">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="editMarketTrends" class="form-label">市场趋势</label>
+                                <textarea class="form-control" id="editMarketTrends" rows="2" placeholder="描述市场的发展趋势"></textarea>
+                            </div>
+                        </div>
+                        
+                        <!-- 现状分析 -->
+                        <div class="tab-pane fade" id="current" role="tabpanel">
+                            <div class="mb-3">
+                                <label for="editCurrentStateAnalysis" class="form-label">当前产品状态分析</label>
+                                <textarea class="form-control" id="editCurrentStateAnalysis" rows="3" placeholder="分析当前产品的状态"></textarea>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="editProductLifecycleStage" class="form-label">产品生命周期阶段</label>
+                                <select class="form-select" id="editProductLifecycleStage">
+                                    <option value="">选择阶段...</option>
+                                    <option value="introduction">引入期</option>
+                                    <option value="growth">成长期</option>
+                                    <option value="maturity">成熟期</option>
+                                    <option value="decline">衰退期</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="editTechnicalConstraints" class="form-label">技术约束条件</label>
+                                <textarea class="form-control" id="editTechnicalConstraints" rows="2" placeholder="描述技术方面的约束条件"></textarea>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="editResourceConstraints" class="form-label">资源约束条件</label>
+                                <textarea class="form-control" id="editResourceConstraints" rows="2" placeholder="描述资源方面的约束条件"></textarea>
+                            </div>
+                        </div>
+                        
+                        <!-- 风险评估 -->
+                        <div class="tab-pane fade" id="risk" role="tabpanel">
+                            <div class="mb-3">
+                                <label for="editRiskAssessment" class="form-label">风险评估</label>
+                                <textarea class="form-control" id="editRiskAssessment" rows="3" placeholder="评估该需求实施的风险"></textarea>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="editTechnicalRisks" class="form-label">技术风险</label>
+                                <textarea class="form-control" id="editTechnicalRisks" rows="2" placeholder="描述技术方面的风险"></textarea>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="editBusinessRisks" class="form-label">业务风险</label>
+                                <textarea class="form-control" id="editBusinessRisks" rows="2" placeholder="描述业务方面的风险"></textarea>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="editImplementationRisks" class="form-label">实施风险</label>
+                                <textarea class="form-control" id="editImplementationRisks" rows="2" placeholder="描述实施过程中的风险"></textarea>
+                            </div>
+                        </div>
+                        
+                        <!-- 其他分析 -->
+                        <div class="tab-pane fade" id="other" role="tabpanel">
+                            <div class="mb-3">
+                                <label for="editDependencies" class="form-label">依赖关系</label>
+                                <textarea class="form-control" id="editDependencies" rows="2" placeholder="描述该需求的依赖关系"></textarea>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="editAlternativeSolutions" class="form-label">替代方案</label>
+                                <textarea class="form-control" id="editAlternativeSolutions" rows="2" placeholder="描述可选的替代方案"></textarea>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="editSuccessMetrics" class="form-label">成功指标</label>
+                                <textarea class="form-control" id="editSuccessMetrics" rows="2" placeholder="描述衡量需求成功的指标"></textarea>
+                            </div>
+                        </div>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                <button type="button" class="btn btn-primary" onclick="saveAnalysisRecord()">保存</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- 依赖关系图模态框 -->
-<div class="modal fade" id="dependencyGraphModal" tabindex="-1">
-    <div class="modal-dialog modal-xl">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">需求依赖关系图</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div id="dependencyGraphContainer" style="height: 500px;">
-                    <div class="text-center py-5">
-                        <div class="spinner-border" role="status">
-                            <span class="visually-hidden">加载中...</span>
-                        </div>
-                        <p class="mt-2">正在生成依赖关系图...</p>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- 需求检查结果模态框 -->
-<div class="modal fade" id="checkResultsModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">需求检查结果</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div id="checkResultsContent">
-                    <div class="text-center py-5">
-                        <div class="spinner-border" role="status">
-                            <span class="visually-hidden">检查中...</span>
-                        </div>
-                        <p class="mt-2">正在进行需求检查...</p>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                <button type="button" class="btn btn-primary" id="saveRequirementBtn">保存</button>
             </div>
         </div>
     </div>
@@ -378,659 +450,251 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/vis-network@9.1.2/dist/vis-network.min.js"></script>
-<link href="https://cdn.jsdelivr.net/npm/vis-network@9.1.2/dist/vis-network.min.css" rel="stylesheet">
 <script>
-// 页面加载完成后初始化图表
 document.addEventListener('DOMContentLoaded', function() {
-    initializeCharts();
+    // 绑定优先级下拉框事件
+    document.querySelectorAll('.priority-select').forEach(select => {
+        select.addEventListener('change', function() {
+            const requirementId = this.getAttribute('data-requirement-id');
+            const priority = this.value;
+            updateRequirement(requirementId, { priority: priority });
+        });
+    });
+    
+    // 绑定状态下拉框事件
+    document.querySelectorAll('.status-select').forEach(select => {
+        select.addEventListener('change', function() {
+            const requirementId = this.getAttribute('data-requirement-id');
+            const status = this.value;
+            updateRequirement(requirementId, { status: status });
+        });
+    });
+    
+    // 绑定编辑按钮事件
+    document.querySelectorAll('.edit-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const requirementId = this.getAttribute('data-requirement-id');
+            editRequirement(requirementId);
+        });
+    });
+    
+    // 绑定保存按钮事件
+    document.getElementById('saveRequirementBtn').addEventListener('click', saveEditedRequirement);
+    
+    // 绑定用户满意度滑块事件
+    const userSatisfactionSlider = document.getElementById('editUserSatisfaction');
+    if (userSatisfactionSlider) {
+        userSatisfactionSlider.addEventListener('input', function() {
+            document.getElementById('userSatisfactionDisplay').textContent = this.value + '分';
+        });
+    }
 });
 
-function initializeCharts() {
-    // 状态分布图
-    const statusCtx = document.getElementById('statusChart').getContext('2d');
-    new Chart(statusCtx, {
-        type: 'doughnut',
-        data: {
-            labels: ['已收集', '分析中', '已确认', '已拒绝', '已完成'],
-            datasets: [{
-                data: [
-                    {{ requirements|selectattr('status', 'equalto', 'collected')|list|length }},
-                    {{ requirements|selectattr('status', 'equalto', 'analyzing')|list|length }},
-                    {{ requirements|selectattr('status', 'equalto', 'confirmed')|list|length }},
-                    {{ requirements|selectattr('status', 'equalto', 'rejected')|list|length }},
-                    {{ requirements|selectattr('status', 'equalto', 'completed')|list|length }}
-                ],
-                backgroundColor: [
-                    '#0d6efd',
-                    '#6610f2',
-                    '#198754',
-                    '#dc3545',
-                    '#20c997'
-                ]
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false
-        }
-    });
+// 显示提示信息
+function showToast(message, type) {
+    // 创建提示元素
+    const toast = document.createElement('div');
+    toast.className = `alert alert-${type} position-fixed`;
+    toast.style = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    toast.textContent = message;
     
-    // 优先级分布图
-    const priorityCtx = document.getElementById('priorityChart').getContext('2d');
-    new Chart(priorityCtx, {
-        type: 'bar',
-        data: {
-            labels: ['高', '中', '低'],
-            datasets: [{
-                label: '需求数量',
-                data: [
-                    {{ requirements|selectattr('priority', 'equalto', 'high')|list|length }},
-                    {{ requirements|selectattr('priority', 'equalto', 'medium')|list|length }},
-                    {{ requirements|selectattr('priority', 'equalto', 'low')|list|length }}
-                ],
-                backgroundColor: [
-                    '#dc3545',
-                    '#ffc107',
-                    '#20c997'
-                ]
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    beginAtZero: true
-                }
-            }
-        }
-    });
+    // 添加到页面
+    document.body.appendChild(toast);
     
-    // 类别分布图
-    const categoryCtx = document.getElementById('categoryChart').getContext('2d');
-    new Chart(categoryCtx, {
-        type: 'pie',
-        data: {
-            labels: ['功能', '非功能', '业务', '用户'],
-            datasets: [{
-                data: [
-                    {{ requirements|selectattr('category', 'equalto', 'functional')|list|length }},
-                    {{ requirements|selectattr('category', 'equalto', 'non-functional')|list|length }},
-                    {{ requirements|selectattr('category', 'equalto', 'business')|list|length }},
-                    {{ requirements|selectattr('category', 'equalto', 'user')|list|length }}
-                ],
-                backgroundColor: [
-                    '#0d6efd',
-                    '#6f42c1',
-                    '#d63384',
-                    '#fd7e14'
-                ]
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false
-        }
-    });
-    
-    // ROI分析图
-    const roiCtx = document.getElementById('roiChart').getContext('2d');
-    const roiData = {{ requirements|map(attribute='estimated_roi')|list }};
-    const roiLabels = {{ requirements|map(attribute='title')|list }};
-    
-    new Chart(roiCtx, {
-        type: 'bar',
-        data: {
-            labels: roiLabels.slice(0, 10), // 只显示前10个需求
-            datasets: [{
-                label: '预估ROI',
-                data: roiData.slice(0, 10),
-                backgroundColor: '#198754'
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    beginAtZero: true
-                }
-            }
-        }
-    });
+    // 3秒后自动移除
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
 }
 
-function filterRequirements(filterType) {
-    const rows = document.querySelectorAll('.requirement-row');
-    
-    rows.forEach(row => {
-        let show = true;
-        
-        if (filterType === 'high') {
-            show = row.dataset.priority === 'high';
-        } else if (filterType === 'functional') {
-            show = row.dataset.category === 'functional';
-        }
-        // 'all' 时显示所有行
-        
-        row.style.display = show ? '' : 'none';
-    });
-    
-    // 更新按钮状态
-    document.querySelectorAll('.btn-group .btn').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    event.target.classList.add('active');
-}
-
-async function updateRequirementPriority(requirementId, priority) {
+// 更新需求字段
+async function updateRequirement(requirementId, data) {
     try {
         const response = await fetch(`/api/requirements/${requirementId}/update`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ priority: priority })
+            body: JSON.stringify(data)
         });
         
         const result = await response.json();
         if (result.success) {
-            RequirementsAnalyst.showToast('优先级更新成功', 'success');
+            showToast('更新成功', 'success');
+            // 延迟刷新页面以显示更新结果
+            setTimeout(() => {
+                location.reload();
+            }, 1000);
+        } else {
+            showToast('更新失败: ' + (result.error || '未知错误'), 'danger');
         }
     } catch (error) {
-        console.error('更新优先级失败:', error);
-        RequirementsAnalyst.showToast('更新失败', 'danger');
+        console.error('更新失败:', error);
+        showToast('更新失败: ' + error.message, 'danger');
     }
 }
 
-async function updateRequirementStatus(requirementId, status) {
-    try {
-        const response = await fetch(`/api/requirements/${requirementId}/update`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ status: status })
-        });
-        
-        const result = await response.json();
-        if (result.success) {
-            RequirementsAnalyst.showToast('状态更新成功', 'success');
-        }
-    } catch (error) {
-        console.error('更新状态失败:', error);
-        RequirementsAnalyst.showToast('更新失败', 'danger');
-    }
-}
-
-// 查看需求详情
-async function viewRequirement(requirementId) {
+// 编辑需求
+async function editRequirement(requirementId) {
     try {
         const response = await fetch(`/api/requirements/detail/${requirementId}`);
         const requirement = await response.json();
         
         if (requirement) {
-            // 创建详情模态框
-            let modalHtml = `
-            <div class="modal fade" id="requirementDetailModal" tabindex="-1">
-                <div class="modal-dialog modal-lg">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">需求详情</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <h6>基本信息</h6>
-                                    <p><strong>标题:</strong> ${escapeHtml(requirement.title)}</p>
-                                    <p><strong>来源:</strong> ${escapeHtml(requirement.source || '未指定')}</p>
-                                    <p><strong>类别:</strong> ${getCategoryText(requirement.category)}</p>
-                                    <p><strong>优先级:</strong> ${getPriorityText(requirement.priority)}</p>
-                                    <p><strong>状态:</strong> ${getStatusText(requirement.status)}</p>
-                                </div>
-                                <div class="col-md-6">
-                                    <h6>价值评估</h6>
-                                    <p><strong>业务价值:</strong> ${requirement.estimated_business_value || 0}/10</p>
-                                    <p><strong>用户价值:</strong> ${requirement.estimated_user_value || 0}/10</p>
-                                    <p><strong>技术价值:</strong> ${requirement.estimated_technical_value || 0}/10</p>
-                                    <p><strong>工作量:</strong> ${requirement.estimated_effort || 0}/10</p>
-                                    <p><strong>预估ROI:</strong> ${(requirement.estimated_roi || 0).toFixed(2)}</p>
-                                </div>
-                            </div>
-                            <div class="row mt-3">
-                                <div class="col-12">
-                                    <h6>需求描述</h6>
-                                    <p>${escapeHtml(requirement.description || '')}</p>
-                                </div>
-                            </div>
-                            <div class="row mt-3">
-                                <div class="col-12">
-                                    <h6>验收标准</h6>
-                                    <p>${escapeHtml(requirement.acceptance_criteria || '暂无')}</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            `;
+            // 填充表单数据
+            document.getElementById('editRequirementId').value = requirement.id;
+            document.getElementById('editRequirementTitle').value = requirement.title || '';
+            document.getElementById('editRequirementCategory').value = requirement.category || '';
+            document.getElementById('editRequirementPriority').value = requirement.priority || 'medium';
+            document.getElementById('editRequirementStatus').value = requirement.status || 'collected';
+            document.getElementById('editRequirementType').value = requirement.requirement_type || '';
+            document.getElementById('editRequirementSource').value = requirement.source || '';
+            document.getElementById('editRequirementScenario').value = requirement.scenario || '';
+            document.getElementById('editCurrentSolution').value = requirement.current_solution || '';
+            document.getElementById('editRequirementProblem').value = requirement.problem || '';
+            document.getElementById('editRequirementGoal').value = requirement.goal || '';
+            document.getElementById('editExpectedSolution').value = requirement.expected_solution || '';
+            document.getElementById('editRequirementValue').value = requirement.value || '';
+            document.getElementById('editPriorityLevel').value = requirement.priority_level || 'medium';
+            document.getElementById('editExpectedCompletionDate').value = requirement.expected_completion_date || '';
+            document.getElementById('editAcceptanceCriteria').value = requirement.acceptance_criteria || '';
+            document.getElementById('editOtherInfo').value = requirement.other_info || '';
             
-            // 添加到页面
-            const modalContainer = document.createElement('div');
-            modalContainer.innerHTML = modalHtml;
-            document.body.appendChild(modalContainer);
+            // 用户分析字段
+            document.getElementById('editTargetUserGroup').value = requirement.target_user_group || '';
+            document.getElementById('editUserResearchData').value = requirement.user_research_data || '';
+            document.getElementById('editUserFeedback').value = requirement.user_feedback || '';
+            document.getElementById('editUserSatisfaction').value = requirement.user_satisfaction || 5;
+            document.getElementById('userSatisfactionDisplay').textContent = (requirement.user_satisfaction || 5) + '分';
+            
+            // 竞品分析字段
+            document.getElementById('editCompetitorAnalysis').value = requirement.competitor_analysis || '';
+            document.getElementById('editCompetitorProducts').value = requirement.competitor_products || '';
+            document.getElementById('editCompetitiveAdvantage').value = requirement.competitive_advantage || '';
+            
+            // 市场分析字段
+            document.getElementById('editMarketResearch').value = requirement.market_research || '';
+            document.getElementById('editMarketSize').value = requirement.market_size || '';
+            document.getElementById('editMarketTrends').value = requirement.market_trends || '';
+            
+            // 现状分析字段
+            document.getElementById('editCurrentStateAnalysis').value = requirement.current_state_analysis || '';
+            document.getElementById('editProductLifecycleStage').value = requirement.product_lifecycle_stage || '';
+            document.getElementById('editTechnicalConstraints').value = requirement.technical_constraints || '';
+            document.getElementById('editResourceConstraints').value = requirement.resource_constraints || '';
+            
+            // 风险评估字段
+            document.getElementById('editRiskAssessment').value = requirement.risk_assessment || '';
+            document.getElementById('editTechnicalRisks').value = requirement.technical_risks || '';
+            document.getElementById('editBusinessRisks').value = requirement.business_risks || '';
+            document.getElementById('editImplementationRisks').value = requirement.implementation_risks || '';
+            
+            // 其他分析字段
+            document.getElementById('editDependencies').value = requirement.dependencies || '';
+            document.getElementById('editAlternativeSolutions').value = requirement.alternative_solutions || '';
+            document.getElementById('editSuccessMetrics').value = requirement.success_metrics || '';
             
             // 显示模态框
-            const modal = new bootstrap.Modal(document.getElementById('requirementDetailModal'));
+            const modal = new bootstrap.Modal(document.getElementById('editRequirementModal'));
             modal.show();
+        }
+    } catch (error) {
+        console.error('加载需求详情失败:', error);
+        showToast('加载失败: ' + error.message, 'danger');
+    }
+}
+
+// 保存编辑后的需求
+async function saveEditedRequirement() {
+    const requirementId = document.getElementById('editRequirementId').value;
+    
+    const formData = {
+        title: document.getElementById('editRequirementTitle').value.trim(),
+        category: document.getElementById('editRequirementCategory').value,
+        priority: document.getElementById('editRequirementPriority').value,
+        status: document.getElementById('editRequirementStatus').value,
+        requirement_type: document.getElementById('editRequirementType').value.trim(),
+        source: document.getElementById('editRequirementSource').value.trim(),
+        scenario: document.getElementById('editRequirementScenario').value.trim(),
+        current_solution: document.getElementById('editCurrentSolution').value.trim(),
+        problem: document.getElementById('editRequirementProblem').value.trim(),
+        goal: document.getElementById('editRequirementGoal').value.trim(),
+        expected_solution: document.getElementById('editExpectedSolution').value.trim(),
+        value: document.getElementById('editRequirementValue').value.trim(),
+        priority_level: document.getElementById('editPriorityLevel').value,
+        expected_completion_date: document.getElementById('editExpectedCompletionDate').value,
+        acceptance_criteria: document.getElementById('editAcceptanceCriteria').value.trim(),
+        other_info: document.getElementById('editOtherInfo').value.trim(),
+        
+        // 用户分析字段
+        target_user_group: document.getElementById('editTargetUserGroup').value.trim(),
+        user_research_data: document.getElementById('editUserResearchData').value.trim(),
+        user_feedback: document.getElementById('editUserFeedback').value.trim(),
+        user_satisfaction: parseInt(document.getElementById('editUserSatisfaction').value) || 5,
+        
+        // 竞品分析字段
+        competitor_analysis: document.getElementById('editCompetitorAnalysis').value.trim(),
+        competitor_products: document.getElementById('editCompetitorProducts').value.trim(),
+        competitive_advantage: document.getElementById('editCompetitiveAdvantage').value.trim(),
+        
+        // 市场分析字段
+        market_research: document.getElementById('editMarketResearch').value.trim(),
+        market_size: document.getElementById('editMarketSize').value.trim(),
+        market_trends: document.getElementById('editMarketTrends').value.trim(),
+        
+        // 现状分析字段
+        current_state_analysis: document.getElementById('editCurrentStateAnalysis').value.trim(),
+        product_lifecycle_stage: document.getElementById('editProductLifecycleStage').value,
+        technical_constraints: document.getElementById('editTechnicalConstraints').value.trim(),
+        resource_constraints: document.getElementById('editResourceConstraints').value.trim(),
+        
+        // 风险评估字段
+        risk_assessment: document.getElementById('editRiskAssessment').value.trim(),
+        technical_risks: document.getElementById('editTechnicalRisks').value.trim(),
+        business_risks: document.getElementById('editBusinessRisks').value.trim(),
+        implementation_risks: document.getElementById('editImplementationRisks').value.trim(),
+        
+        // 其他分析字段
+        dependencies: document.getElementById('editDependencies').value.trim(),
+        alternative_solutions: document.getElementById('editAlternativeSolutions').value.trim(),
+        success_metrics: document.getElementById('editSuccessMetrics').value.trim()
+    };
+    
+    // 验证必要字段
+    if (!formData.title || !formData.category || !formData.scenario || !formData.problem || !formData.goal) {
+        showToast('请填写所有必填字段（标题、类型、场景描述、解决的问题、目标）', 'warning');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/requirements/${requirementId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // 关闭模态框
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editRequirementModal'));
+            modal.hide();
             
-            // 模态框关闭后清理
-            document.getElementById('requirementDetailModal').addEventListener('hidden.bs.modal', function () {
-                document.body.removeChild(modalContainer);
-            });
+            showToast('需求更新成功', 'success');
+            
+            // 延迟刷新页面以显示更新结果
+            setTimeout(() => {
+                location.reload();
+            }, 1000);
+        } else {
+            showToast('更新失败: ' + (result.error || '未知错误'), 'danger');
         }
     } catch (error) {
-        console.error('查看需求详情失败:', error);
-        RequirementsAnalyst.showToast('加载失败', 'danger');
+        console.error('更新需求失败:', error);
+        showToast('更新失败: ' + error.message, 'danger');
     }
-}
-
-// 生成依赖关系图
-async function generateDependencyGraph() {
-    // 显示模态框
-    const modal = new bootstrap.Modal(document.getElementById('dependencyGraphModal'));
-    modal.show();
-    
-    try {
-        // 模拟从API获取需求数据
-        const response = await fetch(`/api/project/${{ project.id }}/requirements`);
-        const requirements = await response.json();
-        
-        // 构建节点和边
-        const nodes = [];
-        const edges = [];
-        
-        // 创建节点
-        requirements.forEach(req => {
-            nodes.push({
-                id: req.id,
-                label: req.title,
-                title: `${req.title}\n优先级: ${getPriorityText(req.priority)}\n状态: ${getStatusText(req.status)}`,
-                color: getRequirementColor(req.priority, req.status)
-            });
-        });
-        
-        // 创建一些示例边（在实际应用中，这些应该来自需求的依赖关系数据）
-        if (requirements.length > 1) {
-            for (let i = 0; i < Math.min(5, requirements.length - 1); i++) {
-                edges.push({
-                    from: requirements[i].id,
-                    to: requirements[i + 1].id,
-                    arrows: 'to',
-                    label: '依赖'
-                });
-            }
-        }
-        
-        // 创建网络图
-        const container = document.getElementById('dependencyGraphContainer');
-        container.innerHTML = '<div id="network" style="height: 500px;"></div>';
-        
-        const data = {
-            nodes: new vis.DataSet(nodes),
-            edges: new vis.DataSet(edges)
-        };
-        
-        const options = {
-            layout: {
-                hierarchical: {
-                    direction: 'LR'
-                }
-            },
-            nodes: {
-                shape: 'box'
-            },
-            edges: {
-                arrows: {
-                    to: {enabled: true, scaleFactor: 1}
-                },
-                smooth: false
-            },
-            physics: {
-                enabled: true
-            }
-        };
-        
-        const network = new vis.Network(document.getElementById('network'), data, options);
-        
-    } catch (error) {
-        console.error('生成依赖关系图失败:', error);
-        document.getElementById('dependencyGraphContainer').innerHTML = 
-            '<div class="alert alert-danger">生成依赖关系图失败: ' + error.message + '</div>';
-    }
-}
-
-// 获取需求颜色（根据优先级和状态）
-function getRequirementColor(priority, status) {
-    if (status === 'completed') return '#28a745'; // 绿色
-    if (status === 'rejected') return '#dc3545'; // 红色
-    
-    switch (priority) {
-        case 'high': return '#dc3545'; // 红色
-        case 'medium': return '#ffc107'; // 黄色
-        case 'low': return '#20c997'; // 青色
-        default: return '#007bff'; // 蓝色
-    }
-}
-
-// 需求检查功能
-async function checkRequirements() {
-    // 显示模态框
-    const modal = new bootstrap.Modal(document.getElementById('checkResultsModal'));
-    modal.show();
-    
-    try {
-        // 模拟从API获取需求数据
-        const response = await fetch(`/api/project/${{ project.id }}/requirements`);
-        const requirements = await response.json();
-        
-        // 执行检查
-        const checkResults = performRequirementChecks(requirements);
-        
-        // 显示结果
-        displayCheckResults(checkResults);
-        
-    } catch (error) {
-        console.error('需求检查失败:', error);
-        document.getElementById('checkResultsContent').innerHTML = 
-            '<div class="alert alert-danger">需求检查失败: ' + error.message + '</div>';
-    }
-}
-
-// 执行需求检查
-function performRequirementChecks(requirements) {
-    const results = {
-        total: requirements.length,
-        issues: []
-    };
-    
-    requirements.forEach(req => {
-        // 检查标题
-        if (!req.title || req.title.trim().length === 0) {
-            results.issues.push({
-                requirementId: req.id,
-                requirementTitle: req.title || '未命名需求',
-                issue: '需求标题为空',
-                severity: 'high'
-            });
-        } else if (req.title.length < 5) {
-            results.issues.push({
-                requirementId: req.id,
-                requirementTitle: req.title,
-                issue: '需求标题过短',
-                severity: 'medium'
-            });
-        }
-        
-        // 检查描述
-        if (!req.description || req.description.trim().length === 0) {
-            results.issues.push({
-                requirementId: req.id,
-                requirementTitle: req.title || '未命名需求',
-                issue: '需求描述为空',
-                severity: 'high'
-            });
-        } else if (req.description.length < 20) {
-            results.issues.push({
-                requirementId: req.id,
-                requirementTitle: req.title,
-                issue: '需求描述过于简短',
-                severity: 'medium'
-            });
-        }
-        
-        // 检查验收标准
-        if (!req.acceptance_criteria || req.acceptance_criteria.trim().length === 0) {
-            results.issues.push({
-                requirementId: req.id,
-                requirementTitle: req.title,
-                issue: '缺少验收标准',
-                severity: 'medium'
-            });
-        }
-        
-        // 检查优先级
-        if (!req.priority || req.priority === 'medium') {
-            results.issues.push({
-                requirementId: req.id,
-                requirementTitle: req.title,
-                issue: '未设置优先级或使用默认优先级',
-                severity: 'low'
-            });
-        }
-        
-        // 检查类别
-        if (!req.category || req.category === 'functional') {
-            results.issues.push({
-                requirementId: req.id,
-                requirementTitle: req.title,
-                issue: '未设置类别或使用默认类别',
-                severity: 'low'
-            });
-        }
-    });
-    
-    return results;
-}
-
-// 显示检查结果
-function displayCheckResults(results) {
-    const container = document.getElementById('checkResultsContent');
-    
-    if (results.issues.length === 0) {
-        container.innerHTML = `
-            <div class="alert alert-success">
-                <h5><i class="fas fa-check-circle"></i> 检查完成</h5>
-                <p>共检查 ${results.total} 个需求，未发现问题。</p>
-            </div>
-        `;
-        return;
-    }
-    
-    // 按严重程度分组
-    const highIssues = results.issues.filter(issue => issue.severity === 'high');
-    const mediumIssues = results.issues.filter(issue => issue.severity === 'medium');
-    const lowIssues = results.issues.filter(issue => issue.severity === 'low');
-    
-    let html = `
-        <div class="alert alert-warning">
-            <h5><i class="fas fa-exclamation-triangle"></i> 检查完成</h5>
-            <p>共检查 ${results.total} 个需求，发现 ${results.issues.length} 个问题。</p>
-        </div>
-        
-        <div class="accordion" id="checkResultsAccordion">
-    `;
-    
-    if (highIssues.length > 0) {
-        html += `
-            <div class="accordion-item">
-                <h2 class="accordion-header" id="highIssuesHeading">
-                    <button class="accordion-button bg-danger text-white" type="button" data-bs-toggle="collapse" data-bs-target="#highIssues">
-                        高严重性问题 (${highIssues.length})
-                    </button>
-                </h2>
-                <div id="highIssues" class="accordion-collapse collapse show" data-bs-parent="#checkResultsAccordion">
-                    <div class="accordion-body">
-                        <ul class="list-group">
-        `;
-        
-        highIssues.forEach(issue => {
-            html += `
-                <li class="list-group-item d-flex justify-content-between align-items-start">
-                    <div class="ms-2 me-auto">
-                        <div class="fw-bold">${escapeHtml(issue.requirementTitle)}</div>
-                        ${escapeHtml(issue.issue)}
-                    </div>
-                    <button class="btn btn-sm btn-outline-primary" onclick="viewRequirement(${issue.requirementId})">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                </li>
-            `;
-        });
-        
-        html += `
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-    
-    if (mediumIssues.length > 0) {
-        html += `
-            <div class="accordion-item">
-                <h2 class="accordion-header" id="mediumIssuesHeading">
-                    <button class="accordion-button bg-warning text-dark" type="button" data-bs-toggle="collapse" data-bs-target="#mediumIssues">
-                        中严重性问题 (${mediumIssues.length})
-                    </button>
-                </h2>
-                <div id="mediumIssues" class="accordion-collapse collapse show" data-bs-parent="#checkResultsAccordion">
-                    <div class="accordion-body">
-                        <ul class="list-group">
-        `;
-        
-        mediumIssues.forEach(issue => {
-            html += `
-                <li class="list-group-item d-flex justify-content-between align-items-start">
-                    <div class="ms-2 me-auto">
-                        <div class="fw-bold">${escapeHtml(issue.requirementTitle)}</div>
-                        ${escapeHtml(issue.issue)}
-                    </div>
-                    <button class="btn btn-sm btn-outline-primary" onclick="viewRequirement(${issue.requirementId})">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                </li>
-            `;
-        });
-        
-        html += `
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-    
-    if (lowIssues.length > 0) {
-        html += `
-            <div class="accordion-item">
-                <h2 class="accordion-header" id="lowIssuesHeading">
-                    <button class="accordion-button bg-info text-dark" type="button" data-bs-toggle="collapse" data-bs-target="#lowIssues">
-                        低严重性问题 (${lowIssues.length})
-                    </button>
-                </h2>
-                <div id="lowIssues" class="accordion-collapse collapse show" data-bs-parent="#checkResultsAccordion">
-                    <div class="accordion-body">
-                        <ul class="list-group">
-        `;
-        
-        lowIssues.forEach(issue => {
-            html += `
-                <li class="list-group-item d-flex justify-content-between align-items-start">
-                    <div class="ms-2 me-auto">
-                        <div class="fw-bold">${escapeHtml(issue.requirementTitle)}</div>
-                        ${escapeHtml(issue.issue)}
-                    </div>
-                    <button class="btn btn-sm btn-outline-primary" onclick="viewRequirement(${issue.requirementId})">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                </li>
-            `;
-        });
-        
-        html += `
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-    
-    html += `
-        </div>
-    `;
-    
-    container.innerHTML = html;
-}
-
-// 保存分析记录
-function saveAnalysisRecord() {
-    const type = document.getElementById('recordType').value;
-    const description = document.getElementById('recordDescription').value;
-    const participants = document.getElementById('recordParticipants').value;
-    
-    if (!type || !description) {
-        RequirementsAnalyst.showToast('请填写必填字段', 'warning');
-        return;
-    }
-    
-    // 这里应该发送请求保存记录，暂时只显示成功消息
-    RequirementsAnalyst.showToast('分析记录保存成功', 'success');
-    bootstrap.Modal.getInstance(document.getElementById('addRecordModal')).hide();
-    document.getElementById('analysisRecordForm').reset();
-}
-
-function escapeHtml(text) {
-    if (typeof text !== 'string') {
-        text = String(text || '');
-    }
-    const map = {
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#039;'
-    };
-    return text.replace(/[&<>"']/g, function(m) { return map[m]; });
-}
-
-function getCategoryText(category) {
-    if (!category) return '-';
-    const categories = {
-        'functional': '功能',
-        'non-functional': '非功能',
-        'business': '业务',
-        'user': '用户'
-    };
-    return categories[category] || category;
-}
-
-function getPriorityText(priority) {
-    if (!priority) return '中';
-    const priorities = {
-        'high': '高',
-        'medium': '中',
-        'low': '低'
-    };
-    return priorities[priority] || priority;
-}
-
-function getStatusText(status) {
-    if (!status) return '已收集';
-    const statuses = {
-        'collected': '已收集',
-        'analyzing': '分析中',
-        'confirmed': '已确认',
-        'rejected': '已拒绝',
-        'completed': '已完成'
-    };
-    return statuses[status] || status;
 }
 </script>
 {% endblock %}
