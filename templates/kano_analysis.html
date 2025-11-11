@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+
+{% block title %}{{ project.name }} - KANO分析{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('index') }}">项目</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('project_detail', project_id=project.id) }}">{{ project.name }}</a></li>
+                <li class="breadcrumb-item active">KANO分析</li>
+            </ol>
+        </nav>
+        
+        <div class="d-flex justify-content-between align-items-center">
+            <h2><i class="fas fa-chart-pie me-2"></i>KANO分析</h2>
+            <a href="{{ url_for('project_detail', project_id=project.id) }}" class="btn btn-outline-primary">
+                <i class="fas fa-arrow-left me-1"></i>返回项目
+            </a>
+        </div>
+        <p class="text-muted">KANO模型需求分类分析</p>
+    </div>
+</div>
+
+<div class="row">
+    <!-- 基本型需求 -->
+    <div class="col-lg-4 col-md-6 mb-4">
+        <div class="card h-100 border-danger">
+            <div class="card-header bg-danger text-white">
+                <h5 class="d-flex justify-content-between align-items-center mb-0">
+                    <span>基本型需求 (Must-be)</span>
+                    <span class="badge bg-light text-dark">{{ kano_groups.must_be|length }}</span>
+                </h5>
+            </div>
+            <div class="card-body">
+                {% for requirement in kano_groups.must_be %}
+                <div class="card requirement-card mb-2">
+                    <div class="card-body py-2">
+                        <h6 class="card-title mb-1">{{ requirement.title }}</h6>
+                        <p class="card-text small text-muted mb-1">{{ requirement.description[:60] }}{% if requirement.description|length > 60 %}...{% endif %}</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="badge bg-danger small">基本型</span>
+                            <small>{{ requirement.source or '未知来源' }}</small>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="text-center text-muted py-3">
+                    <i class="fas fa-inbox"></i>
+                    <p class="small mb-0">暂无需求</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- 期望型需求 -->
+    <div class="col-lg-4 col-md-6 mb-4">
+        <div class="card h-100 border-warning">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="d-flex justify-content-between align-items-center mb-0">
+                    <span>期望型需求 (One-dimensional)</span>
+                    <span class="badge bg-light text-dark">{{ kano_groups.one_dimensional|length }}</span>
+                </h5>
+            </div>
+            <div class="card-body">
+                {% for requirement in kano_groups.one_dimensional %}
+                <div class="card requirement-card mb-2">
+                    <div class="card-body py-2">
+                        <h6 class="card-title mb-1">{{ requirement.title }}</h6>
+                        <p class="card-text small text-muted mb-1">{{ requirement.description[:60] }}{% if requirement.description|length > 60 %}...{% endif %}</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="badge bg-warning small">期望型</span>
+                            <small>{{ requirement.source or '未知来源' }}</small>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="text-center text-muted py-3">
+                    <i class="fas fa-inbox"></i>
+                    <p class="small mb-0">暂无需求</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- 兴奋型需求 -->
+    <div class="col-lg-4 col-md-6 mb-4">
+        <div class="card h-100 border-success">
+            <div class="card-header bg-success text-white">
+                <h5 class="d-flex justify-content-between align-items-center mb-0">
+                    <span>兴奋型需求 (Attractive)</span>
+                    <span class="badge bg-light text-dark">{{ kano_groups.attractive|length }}</span>
+                </h5>
+            </div>
+            <div class="card-body">
+                {% for requirement in kano_groups.attractive %}
+                <div class="card requirement-card mb-2">
+                    <div class="card-body py-2">
+                        <h6 class="card-title mb-1">{{ requirement.title }}</h6>
+                        <p class="card-text small text-muted mb-1">{{ requirement.description[:60] }}{% if requirement.description|length > 60 %}...{% endif %}</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="badge bg-success small">兴奋型</span>
+                            <small>{{ requirement.source or '未知来源' }}</small>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="text-center text-muted py-3">
+                    <i class="fas fa-inbox"></i>
+                    <p class="small mb-0">暂无需求</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- 无差异型需求 -->
+    <div class="col-lg-4 col-md-6 mb-4">
+        <div class="card h-100 border-secondary">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="d-flex justify-content-between align-items-center mb-0">
+                    <span>无差异型需求 (Indifferent)</span>
+                    <span class="badge bg-light text-dark">{{ kano_groups.indifferent|length }}</span>
+                </h5>
+            </div>
+            <div class="card-body">
+                {% for requirement in kano_groups.indifferent %}
+                <div class="card requirement-card mb-2">
+                    <div class="card-body py-2">
+                        <h6 class="card-title mb-1">{{ requirement.title }}</h6>
+                        <p class="card-text small text-muted mb-1">{{ requirement.description[:60] }}{% if requirement.description|length > 60 %}...{% endif %}</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="badge bg-secondary small">无差异型</span>
+                            <small>{{ requirement.source or '未知来源' }}</small>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="text-center text-muted py-3">
+                    <i class="fas fa-inbox"></i>
+                    <p class="small mb-0">暂无需求</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- 反向型需求 -->
+    <div class="col-lg-4 col-md-6 mb-4">
+        <div class="card h-100 border-info">
+            <div class="card-header bg-info text-white">
+                <h5 class="d-flex justify-content-between align-items-center mb-0">
+                    <span>反向型需求 (Reverse)</span>
+                    <span class="badge bg-light text-dark">{{ kano_groups.reverse|length }}</span>
+                </h5>
+            </div>
+            <div class="card-body">
+                {% for requirement in kano_groups.reverse %}
+                <div class="card requirement-card mb-2">
+                    <div class="card-body py-2">
+                        <h6 class="card-title mb-1">{{ requirement.title }}</h6>
+                        <p class="card-text small text-muted mb-1">{{ requirement.description[:60] }}{% if requirement.description|length > 60 %}...{% endif %}</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="badge bg-info small">反向型</span>
+                            <small>{{ requirement.source or '未知来源' }}</small>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="text-center text-muted py-3">
+                    <i class="fas fa-inbox"></i>
+                    <p class="small mb-0">暂无需求</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">KANO分析说明</h5>
+            </div>
+            <div class="card-body">
+                <ul>
+                    <li><strong>基本型需求 (Must-be)</strong>：用户认为这是必须的，如果不提供会很不满意，但提供后用户也不会特别满意</li>
+                    <li><strong>期望型需求 (One-dimensional)</strong>：用户明确表达的需求，提供后用户满意，不提供则不满意</li>
+                    <li><strong>兴奋型需求 (Attractive)</strong>：用户未明确表达的需求，提供后用户会感到惊喜和满意</li>
+                    <li><strong>无差异型需求 (Indifferent)</strong>：无论提供与否，用户都无所谓</li>
+                    <li><strong>反向型需求 (Reverse)</strong>：用户不希望有这样的功能，提供后反而会降低满意度</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

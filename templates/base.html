@@ -64,8 +64,28 @@
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('kanban_view', project_id=project.id) }}">
-                                <i class="fas fa-kanban me-2"></i>看板视图
+                            <a class="nav-link" href="{{ url_for('kano_analysis', project_id=project.id) }}">
+                                <i class="fas fa-chart-bar me-2"></i>KANO分析
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('vsm_analysis', project_id=project.id) }}">
+                                <i class="fas fa-stream me-2"></i>VSM分析
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('smart_goals', project_id=project.id) }}">
+                                <i class="fas fa-bullseye me-2"></i>SMART目标
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('wfmt_analysis', project_id=project.id) }}">
+                                <i class="fas fa-clock me-2"></i>WFMT分析
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('comprehensive_analysis', project_id=project.id) }}">
+                                <i class="fas fa-chart-pie me-2"></i>综合分析
                             </a>
                         </li>
                         <li class="nav-item">

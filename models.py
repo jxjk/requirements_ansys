@@ -155,6 +155,32 @@ class Requirement(db.Model):
     alternative_solutions = db.Column(db.Text)         # 替代方案
     success_metrics = db.Column(db.Text)               # 成功指标
     
+    # KANO分析增强字段
+    kano_survey_completed = db.Column(db.Boolean, default=False)  # KANO调查完成状态
+    kano_survey_date = db.Column(db.DateTime)          # KANO调查日期
+    kano_positive_question = db.Column(db.Text)        # 正向问题
+    kano_negative_question = db.Column(db.Text)        # 反向问题
+    
+    # VSM分析增强字段
+    vsm_analyzed = db.Column(db.Boolean, default=False)  # VSM分析完成状态
+    vsm_analysis_date = db.Column(db.DateTime)        # VSM分析日期
+    vsm_process_steps_json = db.Column(db.Text)       # 流程步骤JSON数据
+    vsm_improvement_actions = db.Column(db.Text)      # 改善措施
+    
+    # SMART目标增强字段
+    smart_goal_set = db.Column(db.Boolean, default=False)  # SMART目标设定状态
+    smart_goal_date = db.Column(db.DateTime)          # SMART目标设定日期
+    smart_progress = db.Column(db.Float, default=0.0) # 目标完成进度
+    smart_measurement_unit = db.Column(db.String(50)) # 衡量单位
+    
+    # WFMT分析增强字段
+    wfmt_analyzed = db.Column(db.Boolean, default=False)  # WFMT分析完成状态
+    wfmt_analysis_date = db.Column(db.DateTime)       # WFMT分析日期
+    wfmt_action_sequence = db.Column(db.Text)         # 动作序列JSON
+    wfmt_before_time = db.Column(db.Float)            # 改善前时间
+    wfmt_after_time = db.Column(db.Float)             # 改善后时间
+    wfmt_time_saved = db.Column(db.Float)             # 节省时间
+    
     @property
     def description(self):
         """
