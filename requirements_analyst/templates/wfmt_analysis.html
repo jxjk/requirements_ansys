@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}{{ project.name }} - WFMT分析{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('index') }}">项目</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('project_detail', project_id=project.id) }}">{{ project.name }}</a></li>
+                <li class="breadcrumb-item active">WFMT分析</li>
+            </ol>
+        </nav>
+        
+        <div class="d-flex justify-content-between align-items-center">
+            <h2><i class="fas fa-stopwatch me-2"></i>WFMT分析</h2>
+            <a href="{{ url_for('project_detail', project_id=project.id) }}" class="btn btn-outline-primary">
+                <i class="fas fa-arrow-left me-1"></i>返回项目
+            </a>
+        </div>
+        <p class="text-muted">动作时间分析（Work Factor Measurement Technique）</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5>WFMT分析结果</h5>
+            </div>
+            <div class="card-body">
+                {% if requirements %}
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>需求名称</th>
+                                <th>标准时间</th>
+                                <th>改善潜力</th>
+                                <th>总TMU时间</th>
+                                <th>宽放率</th>
+                                <th>来源</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for requirement in requirements %}
+                            <tr>
+                                <td>{{ requirement.title }}</td>
+                                <td>{{ requirement.standard_time or 'N/A' }} 秒</td>
+                                <td>{{ requirement.improvement_potential or 'N/A' }} 秒</td>
+                                <td>{{ requirement.wfmt_tmu_total or 'N/A' }}</td>
+                                <td>{{ requirement.wfmt_allowance_rate or 'N/A' }}%</td>
+                                <td>{{ requirement.source or '未知来源' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">暂无WFMT分析数据</h5>
+                    <p class="text-muted">该项目尚未添加任何WFMT分析相关的需求数据</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">WFMT分析说明</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>WFMT（Work Factor Measurement Technique）</strong>是一种动作时间分析技术，用于测量和分析工作过程中的各个动作所需的时间。</p>
+                <ul>
+                    <li><strong>标准时间</strong>：完成一个操作或任务所需的标准时间</li>
+                    <li><strong>改善潜力</strong>：通过优化流程可以节省的时间</li>
+                    <li><strong>总TMU时间</strong>：总的时间测量单位（Time Measurement Units）</li>
+                    <li><strong>宽放率</strong>：考虑疲劳、个人需求等因素的时间宽放百分比</li>
+                </ul>
+                <p>通过WFMT分析，可以帮助识别流程中的时间浪费，优化工作效率。</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,2 @@
+requirement_id,vsm_process_steps,cycle_time,lead_time,process_efficiency,vsm_current_state,vsm_future_state
+SJ01,"需求收集->分析->确认",5.0,15.0,33.3,"当前状态描述","未来状态描述"

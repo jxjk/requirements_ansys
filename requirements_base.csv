@@ -1,0 +1,2 @@
+id,title,requirement_type,scenario,problem,current_solution,goal,expected_solution,value,priority_level,other_info,source,category,priority,status,acceptance_criteria
+SJ01,需求定义辅助软件,业务需求,用于需要定义,实现听清楚想明白定节奏,,,,,中,,生产技术部,functional,medium,collected,
