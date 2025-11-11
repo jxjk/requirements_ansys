@@ -1034,5 +1034,333 @@ def add_cache_headers(response, status_code=200):
     response.status_code = status_code
     return response
 
+ # KANO分析API接口
+@app.route('/api/kano-analysis/<int:project_id>', methods=['GET', 'POST'])
+@login_required
+def kano_analysis(project_id):
+    """KANO分析API接口"""
+    if request.method == 'POST':
+        try:
+            data = request.get_json()
+            requirement_id = data.get('requirement_id')
+            positive_answer = data.get('positive_answer')
+            negative_answer = data.get('negative_answer')
+            
+            requirement = Requirement.query.filter_by(id=requirement_id, project_id=project_id).first_or_404()
+            
+            # KANO分类逻辑
+            kano_category = classify_kano_requirement(positive_answer, negative_answer)
+            requirement.kano_category = kano_category
+            requirement.kano_positive_answer = positive_answer
+            requirement.kano_negative_answer = negative_answer
+            
+            # 计算优先级评分
+            priority_score = calculate_kano_priority(kano_category)
+            requirement.kano_priority_score = priority_score
+            
+            db.session.commit()
+            logger.info(f"用户 {session['user_id']} 为需求 {requirement.title} 设置了KANO分类: {kano_category}")
+            return add_cache_headers(jsonify({'success': True, 'kano_category': kano_category, 'priority_score': priority_score}))
+            
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error in KANO analysis: {str(e)}")
+            return add_cache_headers(jsonify({'success': False, 'error': str(e)}), 500)
+    
+    # GET方法 - 获取项目的KANO分析结果
+    requirements = Requirement.query.filter_by(project_id=project_id).all()
+    kano_stats = {
+        'must_be': 0,
+        'one_dimensional': 0,
+        'attractive': 0,
+        'indifferent': 0,
+        'reverse': 0,
+        'unclassified': 0
+    }
+    
+    for req in requirements:
+        if req.kano_category:
+            kano_stats[req.kano_category] = kano_stats.get(req.kano_category, 0) + 1
+        else:
+            kano_stats['unclassified'] += 1
+    
+    return add_cache_headers(jsonify(kano_stats))
+
+def classify_kano_requirement(positive_answer, negative_answer):
+    """根据正反向问题答案分类KANO需求"""
+    kano_matrix = {
+        'like': {
+            'like': 'attractive',
+            'must-be': 'attractive',
+            'neutral': 'attractive',
+            'live-with': 'attractive',
+            'dislike': 'one_dimensional'
+        },
+        'must-be': {
+            'like': 'reverse',
+            'must-be': 'indifferent',
+            'neutral': 'indifferent',
+            'live-with': 'indifferent',
+            'dislike': 'must_be'
+        },
+        'neutral': {
+            'like': 'reverse',
+            'must-be': 'indifferent',
+            'neutral': 'indifferent',
+            'live-with': 'indifferent',
+            'dislike': 'indifferent'
+        },
+        'live-with': {
+            'like': 'reverse',
+            'must-be': 'indifferent',
+            'neutral': 'indifferent',
+            'live-with': 'indifferent',
+            'dislike': 'indifferent'
+        },
+        'dislike': {
+            'like': 'reverse',
+            'must-be': 'reverse',
+            'neutral': 'reverse',
+            'live-with': 'reverse',
+            'dislike': 'questionable'
+        }
+    }
+    
+    return kano_matrix.get(positive_answer, {}).get(negative_answer, 'unclassified')
+
+def calculate_kano_priority(kano_category):
+    """根据KANO分类计算优先级评分"""
+    priority_scores = {
+        'must_be': 10.0,
+        'one_dimensional': 8.0,
+        'attractive': 6.0,
+        'indifferent': 2.0,
+        'reverse': 0.0,
+        'questionable': 1.0,
+        'unclassified': 5.0
+    }
+    return priority_scores.get(kano_category, 5.0)
+
+# VSM分析API接口
+@app.route('/api/vsm-analysis/<int:project_id>', methods=['GET', 'POST'])
+@login_required
+def vsm_analysis(project_id):
+    """VSM价值流分析API接口"""
+    if request.method == 'POST':
+        try:
+            data = request.get_json()
+            requirement_id = data.get('requirement_id')
+            
+            requirement = Requirement.query.filter_by(id=requirement_id, project_id=project_id).first_or_404()
+            
+            # 更新VSM相关字段
+            requirement.vsm_process_steps = data.get('process_steps')
+            requirement.cycle_time = data.get('cycle_time')
+            requirement.lead_time = data.get('lead_time')
+            requirement.process_efficiency = data.get('process_efficiency')
+            requirement.vsm_current_state = data.get('current_state')
+            requirement.vsm_future_state = data.get('future_state')
+            
+            db.session.commit()
+            logger.info(f"用户 {session['user_id']} 为需求 {requirement.title} 更新了VSM分析数据")
+            return add_cache_headers(jsonify({'success': True}))
+            
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error in VSM analysis: {str(e)}")
+            return add_cache_headers(jsonify({'success': False, 'error': str(e)}), 500)
+    
+    # GET方法 - 获取项目的VSM分析概览
+    requirements = Requirement.query.filter_by(project_id=project_id).all()
+    vsm_data = []
+    
+    for req in requirements:
+        if req.cycle_time and req.lead_time:
+            vsm_data.append({
+                'id': req.id,
+                'title': req.title,
+                'cycle_time': req.cycle_time,
+                'lead_time': req.lead_time,
+                'process_efficiency': req.process_efficiency,
+                'kano_category': req.kano_category
+            })
+    
+    return add_cache_headers(jsonify(vsm_data))
+
+# SMART目标管理API接口
+@app.route('/api/smart-goals/<int:project_id>', methods=['GET', 'POST'])
+@login_required
+def smart_goals(project_id):
+    """SMART目标管理API接口"""
+    if request.method == 'POST':
+        try:
+            data = request.get_json()
+            requirement_id = data.get('requirement_id')
+            
+            requirement = Requirement.query.filter_by(id=requirement_id, project_id=project_id).first_or_404()
+            
+            # 更新SMART目标字段
+            requirement.smart_specific = data.get('specific')
+            requirement.smart_measurable = data.get('measurable')
+            requirement.smart_achievable = data.get('achievable', True)
+            requirement.smart_relevant = data.get('relevant')
+            
+            # 处理时限性日期
+            if data.get('timebound'):
+                try:
+                    requirement.smart_timebound = datetime.strptime(data['timebound'], '%Y-%m-%d').date()
+                except ValueError:
+                    requirement.smart_timebound = None
+            
+            requirement.smart_target_level = data.get('target_level', 'basic')
+            
+            db.session.commit()
+            logger.info(f"用户 {session['user_id']} 为需求 {requirement.title} 设置了SMART目标")
+            return add_cache_headers(jsonify({'success': True}))
+            
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error in SMART goals: {str(e)}")
+            return add_cache_headers(jsonify({'success': False, 'error': str(e)}), 500)
+    
+    # GET方法 - 获取项目的SMART目标概览
+    requirements = Requirement.query.filter_by(project_id=project_id).all()
+    smart_goals_data = []
+    
+    for req in requirements:
+        if req.smart_specific:
+            smart_goals_data.append({
+                'id': req.id,
+                'title': req.title,
+                'specific': req.smart_specific,
+                'measurable': req.smart_measurable,
+                'achievable': req.smart_achievable,
+                'relevant': req.smart_relevant,
+                'timebound': req.smart_timebound.strftime('%Y-%m-%d') if req.smart_timebound else None,
+                'target_level': req.smart_target_level
+            })
+    
+    return add_cache_headers(jsonify(smart_goals_data))
+
+# WFMT动作时间分析API接口
+@app.route('/api/wfmt-analysis/<int:project_id>', methods=['GET', 'POST'])
+@login_required
+def wfmt_analysis(project_id):
+    """WFMT动作时间分析API接口"""
+    if request.method == 'POST':
+        try:
+            data = request.get_json()
+            requirement_id = data.get('requirement_id')
+            
+            requirement = Requirement.query.filter_by(id=requirement_id, project_id=project_id).first_or_404()
+            
+            # 更新WFMT相关字段
+            requirement.wfmt_analysis = data.get('analysis_data')
+            requirement.standard_time = data.get('standard_time')
+            requirement.improvement_potential = data.get('improvement_potential')
+            requirement.wfmt_tmu_total = data.get('tmu_total')
+            requirement.wfmt_allowance_rate = data.get('allowance_rate', 15.0)  # 默认15%宽放率
+            
+            db.session.commit()
+            logger.info(f"用户 {session['user_id']} 为需求 {requirement.title} 更新了WFMT分析数据")
+            return add_cache_headers(jsonify({'success': True}))
+            
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error in WFMT analysis: {str(e)}")
+            return add_cache_headers(jsonify({'success': False, 'error': str(e)}), 500)
+    
+    # GET方法 - 获取项目的WFMT分析概览
+    requirements = Requirement.query.filter_by(project_id=project_id).all()
+    wfmt_data = []
+    
+    for req in requirements:
+        if req.standard_time:
+            wfmt_data.append({
+                'id': req.id,
+                'title': req.title,
+                'standard_time': req.standard_time,
+                'improvement_potential': req.improvement_potential,
+                'tmu_total': req.wfmt_tmu_total,
+                'allowance_rate': req.wfmt_allowance_rate
+            })
+    
+    return add_cache_headers(jsonify(wfmt_data))
+
+# 综合分析报告API
+@app.route('/api/comprehensive-analysis/<int:project_id>')
+@login_required
+def comprehensive_analysis(project_id):
+    """综合分析报告API"""
+    project = Project.query.get_or_404(project_id)
+    requirements = Requirement.query.filter_by(project_id=project_id).all()
+    
+    analysis_data = {
+        'project_name': project.name,
+        'total_requirements': len(requirements),
+        'kano_analysis': {},
+        'vsm_analysis': {},
+        'smart_goals': {},
+        'wfmt_analysis': {},
+        'recommendations': []
+    }
+    
+    # KANO分析统计
+    kano_categories = {}
+    for req in requirements:
+        if req.kano_category:
+            kano_categories[req.kano_category] = kano_categories.get(req.kano_category, 0) + 1
+    analysis_data['kano_analysis'] = kano_categories
+    
+    # VSM分析统计
+    total_cycle_time = 0
+    total_lead_time = 0
+    vsm_requirements = 0
+    for req in requirements:
+        if req.cycle_time and req.lead_time:
+            total_cycle_time += req.cycle_time
+            total_lead_time += req.lead_time
+            vsm_requirements += 1
+    
+    if vsm_requirements > 0:
+        analysis_data['vsm_analysis'] = {
+            'avg_cycle_time': total_cycle_time / vsm_requirements,
+            'avg_lead_time': total_lead_time / vsm_requirements,
+            'analyzed_requirements': vsm_requirements
+        }
+    
+    # SMART目标统计
+    smart_requirements = len([r for r in requirements if r.smart_specific])
+    analysis_data['smart_goals'] = {
+        'with_smart_goals': smart_requirements,
+        'without_smart_goals': len(requirements) - smart_requirements
+    }
+    
+    # WFMT分析统计
+    wfmt_requirements = len([r for r in requirements if r.standard_time])
+    analysis_data['wfmt_analysis'] = {
+        'analyzed_requirements': wfmt_requirements
+    }
+    
+    # 生成建议
+    if kano_categories.get('must_be', 0) > 0:
+        analysis_data['recommendations'].append('存在基本型需求，建议优先满足')
+    if kano_categories.get('attractive', 0) > 0:
+        analysis_data['recommendations'].append('存在兴奋型需求，可作为差异化竞争优势')
+    
+    if analysis_data['vsm_analysis'].get('avg_lead_time', 0) > analysis_data['vsm_analysis'].get('avg_cycle_time', 0) * 10:
+        analysis_data['recommendations'].append('交付时间过长，建议优化流程减少等待时间')
+    
+    return add_cache_headers(jsonify(analysis_data))
+  
+# 综合分析页面路由
+@app.route('/project/<int:project_id>/comprehensive-analysis')
+@login_required
+def comprehensive_analysis_page(project_id):
+    """综合分析页面"""
+    project = Project.query.get_or_404(project_id)
+    response = make_response(render_template('comprehensive_analysis.html', project=project))
+    return response
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

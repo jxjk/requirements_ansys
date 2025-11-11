@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>综合分析 - {{ project.name }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .analysis-card {
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            transition: transform 0.2s;
+        }
+        .analysis-card:hover {
+            transform: translateY(-2px);
+        }
+        .kano-must-be { background-color: #dc3545; color: white; }
+        .kano-one-dimensional { background-color: #fd7e14; color: white; }
+        .kano-attractive { background-color: #198754; color: white; }
+        .kano-indifferent { background-color: #6c757d; color: white; }
+        .kano-reverse { background-color: #6f42c1; color: white; }
+        .stat-card {
+            text-align: center;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        .vsm-timeline {
+            border-left: 3px solid #007bff;
+            padding-left: 20px;
+            margin-left: 10px;
+        }
+        .vsm-step {
+            background: white;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .improvement-high { background-color: #d4edda; }
+        .improvement-medium { background-color: #fff3cd; }
+        .improvement-low { background-color: #f8d7da; }
+    </style>
+</head>
+<body>
+    {% extends "base.html" %}
+    
+    {% block content %}
+    <div class="container-fluid py-4">
+        <!-- 页面标题 -->
+        <div class="row mb-4">
+            <div class="col">
+                <h1 class="h3 mb-0">综合分析报告</h1>
+                <p class="text-muted">项目: {{ project.name }}</p>
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-primary" onclick="exportAnalysisReport()">
+                    <i class="bi bi-download"></i> 导出报告
+                </button>
+            </div>
+        </div>
+
+        <!-- 概览统计 -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="stat-card bg-primary text-white">
+                    <h4 id="totalRequirements">0</h4>
+                    <p>总需求数</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card bg-success text-white">
+                    <h4 id="kanoAnalyzed">0</h4>
+                    <p>KANO分析完成</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card bg-info text-white">
+                    <h4 id="vsmAnalyzed">0</h4>
+                    <p>VSM分析完成</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card bg-warning text-white">
+                    <h4 id="smartGoals">0</h4>
+                    <p>SMART目标设定</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- KANO分析 -->
+        <div class="row">
+            <div class="col-lg-6">
+                <div class="card analysis-card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-diagram-3"></i> KANO需求分类分析
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="kanoChart" width="400" height="300"></canvas>
+                        <div class="mt-3" id="kanoStats"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="card analysis-card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-graph-up"></i> VSM价值流分析
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="vsmChart" width="400" height="300"></canvas>
+                        <div class="mt-3" id="vsmStats"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SMART目标和WFMT分析 -->
+        <div class="row mt-4">
+            <div class="col-lg-6">
+                <div class="card analysis-card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-bullseye"></i> SMART目标分析
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="smartGoalsList"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="card analysis-card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-stopwatch"></i> WFMT动作时间分析
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="wfmtAnalysisList"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 综合分析建议 -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card analysis-card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-lightbulb"></i> 综合分析建议
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="recommendationsList"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 详细需求列表 -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card analysis-card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-list-check"></i> 需求详细分析
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped" id="requirementsTable">
+                                <thead>
+                                    <tr>
+                                        <th>需求标题</th>
+                                        <th>KANO分类</th>
+                                        <th>优先级评分</th>
+                                        <th>周期时间</th>
+                                        <th>交付时间</th>
+                                        <th>SMART目标</th>
+                                        <th>标准时间</th>
+                                        <th>改善潜力</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="requirementsTableBody">
+                                    <!-- 通过JavaScript填充 -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endblock %}
+
+    {% block scripts %}
+    <script>
+        let analysisData = {};
+
+        // 页面加载时获取分析数据
+        document.addEventListener('DOMContentLoaded', function() {
+            loadComprehensiveAnalysis();
+        });
+
+        // 加载综合分析数据
+        async function loadComprehensiveAnalysis() {
+            try {
+                const response = await fetch(`/api/comprehensive-analysis/{{ project.id }}`);
+                analysisData = await response.json();
+                
+                // 更新概览统计
+                updateOverviewStats();
+                
+                // 渲染图表
+                renderKanoChart();
+                renderVSMChart();
+                
+                // 更新详细数据
+                updateSmartGoalsList();
+                updateWFMTList();
+                updateRecommendations();
+                updateRequirementsTable();
+                
+            } catch (error) {
+                console.error('加载分析数据失败:', error);
+                alert('加载分析数据失败，请重试');
+            }
+        }
+
+        // 更新概览统计
+        function updateOverviewStats() {
+            document.getElementById('totalRequirements').textContent = analysisData.total_requirements;
+            document.getElementById('kanoAnalyzed').textContent = Object.values(analysisData.kano_analysis).reduce((a, b) => a + b, 0);
+            document.getElementById('vsmAnalyzed').textContent = analysisData.vsm_analysis.analyzed_requirements || 0;
+            document.getElementById('smartGoals').textContent = analysisData.smart_goals.with_smart_goals || 0;
+        }
+
+        // 渲染KANO图表
+        function renderKanoChart() {
+            const ctx = document.getElementById('kanoChart').getContext('2d');
+            const kanoData = analysisData.kano_analysis;
+            
+            const labels = Object.keys(kanoData);
+            const data = Object.values(kanoData);
+            const backgroundColors = [
+                '#dc3545', '#fd7e14', '#198754', '#6c757d', '#6f42c1', '#20c997'
+            ];
+
+            new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: backgroundColors,
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.raw || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = Math.round((value / total) * 100);
+                                    return `${label}: ${value} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 更新KANO统计信息
+            const kanoStatsDiv = document.getElementById('kanoStats');
+            let statsHtml = '<div class="row">';
+            for (const [category, count] of Object.entries(kanoData)) {
+                const percentage = Math.round((count / analysisData.total_requirements) * 100);
+                statsHtml += `
+                    <div class="col-6 mb-2">
+                        <span class="badge kano-${category.replace('_', '-')}">${category}</span>
+                        <small class="text-muted">${count} (${percentage}%)</small>
+                    </div>
+                `;
+            }
+            statsHtml += '</div>';
+            kanoStatsDiv.innerHTML = statsHtml;
+        }
+
+        // 渲染VSM图表
+        function renderVSMChart() {
+            const ctx = document.getElementById('vsmChart').getContext('2d');
+            const vsmData = analysisData.vsm_analysis;
+            
+            if (vsmData.analyzed_requirements > 0) {
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['平均周期时间', '平均交付时间'],
+                        datasets: [{
+                            label: '时间（单位）',
+                            data: [vsmData.avg_cycle_time, vsmData.avg_lead_time],
+                            backgroundColor: ['#007bff', '#28a745'],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: '时间'
+                                }
+                            }
+                        }
+                    }
+                });
+
+                // 更新VSM统计信息
+                const vsmStatsDiv = document.getElementById('vsmStats');
+                vsmStatsDiv.innerHTML = `
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <h6>${vsmData.avg_cycle_time.toFixed(2)}</h6>
+                            <small class="text-muted">平均周期时间</small>
+                        </div>
+                        <div class="col-4">
+                            <h6>${vsmData.avg_lead_time.toFixed(2)}</h6>
+                            <small class="text-muted">平均交付时间</small>
+                        </div>
+                        <div class="col-4">
+                            <h6>${vsmData.analyzed_requirements}</h6>
+                            <small class="text-muted">分析需求数</small>
+                        </div>
+                    </div>
+                `;
+            } else {
+                document.getElementById('vsmChart').parentElement.innerHTML = 
+                    '<p class="text-muted text-center">暂无VSM分析数据</p>';
+            }
+        }
+
+        // 更新SMART目标列表
+        function updateSmartGoalsList() {
+            const smartGoalsDiv = document.getElementById('smartGoalsList');
+            const smartCount = analysisData.smart_goals.with_smart_goals || 0;
+            const totalCount = analysisData.total_requirements;
+            const percentage = Math.round((smartCount / totalCount) * 100);
+            
+            smartGoalsDiv.innerHTML = `
+                <div class="progress mb-3" style="height: 20px;">
+                    <div class="progress-bar" role="progressbar" 
+                         style="width: ${percentage}%" 
+                         aria-valuenow="${percentage}" 
+                         aria-valuemin="0" 
+                         aria-valuemax="100">
+                        ${percentage}%
+                    </div>
+                </div>
+                <p class="text-center">
+                    <strong>${smartCount}</strong> / <strong>${totalCount}</strong> 个需求已设定SMART目标
+                </p>
+            `;
+        }
+
+        // 更新WFMT分析列表
+        function updateWFMTList() {
+            const wfmtDiv = document.getElementById('wfmtAnalysisList');
+            const wfmtCount = analysisData.wfmt_analysis.analyzed_requirements || 0;
+            const totalCount = analysisData.total_requirements;
+            const percentage = Math.round((wfmtCount / totalCount) * 100);
+            
+            wfmtDiv.innerHTML = `
+                <div class="progress mb-3" style="height: 20px;">
+                    <div class="progress-bar bg-warning" role="progressbar" 
+                         style="width: ${percentage}%" 
+                         aria-valuenow="${percentage}" 
+                         aria-valuemin="0" 
+                         aria-valuemax="100">
+                        ${percentage}%
+                    </div>
+                </div>
+                <p class="text-center">
+                    <strong>${wfmtCount}</strong> / <strong>${totalCount}</strong> 个需求已完成动作时间分析
+                </p>
+            `;
+        }
+
+        // 更新建议列表
+        function updateRecommendations() {
+            const recommendationsDiv = document.getElementById('recommendationsList');
+            let recommendationsHtml = '';
+            
+            if (analysisData.recommendations && analysisData.recommendations.length > 0) {
+                recommendationsHtml = '<ul class="list-group">';
+                analysisData.recommendations.forEach(rec => {
+                    recommendationsHtml += `<li class="list-group-item">${rec}</li>`;
+                });
+                recommendationsHtml += '</ul>';
+            } else {
+                recommendationsHtml = '<p class="text-muted text-center">暂无分析建议</p>';
+            }
+            
+            recommendationsDiv.innerHTML = recommendationsHtml;
+        }
+
+        // 更新需求表格
+        function updateRequirementsTable() {
+            // 这里需要从其他API获取详细的需求数据
+            // 暂时显示占位信息
+            const tableBody = document.getElementById('requirementsTableBody');
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="8" class="text-center text-muted">
+                        点击上方按钮加载详细需求数据
+                    </td>
+                </tr>
+            `;
+        }
+
+        // 导出分析报告
+        function exportAnalysisReport() {
+            alert('导出功能开发中...');
+            // 这里可以调用后端API生成并下载报告
+        }
+
+        // 加载详细需求数据
+        async function loadDetailedRequirements() {
+            try {
+                const response = await fetch(`/api/requirements/{{ project.id }}`);
+                const requirements = await response.json();
+                
+                const tableBody = document.getElementById('requirementsTableBody');
+                let tableHtml = '';
+                
+                requirements.forEach(req => {
+                    tableHtml += `
+                        <tr>
+                            <td>${req.title}</td>
+                            <td>
+                                <span class="badge kano-${(req.kano_category || 'unclassified').replace('_', '-')}">
+                                    ${req.kano_category || '未分类'}
+                                </span>
+                            </td>
+                            <td>${req.kano_priority_score || '-'}</td>
+                            <td>${req.cycle_time || '-'}</td>
+                            <td>${req.lead_time || '-'}</td>
+                            <td>${req.smart_specific ? '✓' : '✗'}</td>
+                            <td>${req.standard_time || '-'}</td>
+                            <td>
+                                ${req.improvement_potential ? 
+                                    `<span class="badge ${getImprovementClass(req.improvement_potential)}">
+                                        ${req.improvement_potential}%
+                                    </span>` : 
+                                    '-'
+                                }
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                tableBody.innerHTML = tableHtml;
+                
+            } catch (error) {
+                console.error('加载详细需求数据失败:', error);
+            }
+        }
+
+        // 获取改善潜力样式类
+        function getImprovementClass(improvement) {
+            if (improvement >= 30) return 'bg-success';
+            if (improvement >= 15) return 'bg-warning';
+            return 'bg-danger';
+        }
+    </script>
+{% endblock %}

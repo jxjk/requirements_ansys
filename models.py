@@ -79,6 +79,36 @@ class Requirement(db.Model):
     expected_completion_date = db.Column(db.Date)                # 期望完成日期
     assigned_milestone_id = db.Column(db.Integer, db.ForeignKey('milestones.id'))  # 分配的里程碑
     
+    # VSM相关字段
+    vsm_process_steps = db.Column(db.Text)  # 价值流步骤
+    cycle_time = db.Column(db.Float)        # 周期时间
+    lead_time = db.Column(db.Float)         # 交付时间
+    process_efficiency = db.Column(db.Float) # 流程效率
+    vsm_current_state = db.Column(db.Text)  # 当前状态图
+    vsm_future_state = db.Column(db.Text)   # 未来状态图
+    
+    # KANO相关字段
+    kano_category = db.Column(db.String(20))  # KANO分类: must-be, one-dimensional, attractive, indifferent, reverse
+    kano_survey_data = db.Column(db.Text)     # 调查数据
+    kano_priority_score = db.Column(db.Float) # 优先级评分
+    kano_positive_answer = db.Column(db.String(20))  # 正向问题答案
+    kano_negative_answer = db.Column(db.String(20))  # 反向问题答案
+    
+    # SMART目标字段
+    smart_specific = db.Column(db.Text)       # 明确性
+    smart_measurable = db.Column(db.Text)     # 可衡量
+    smart_achievable = db.Column(db.Boolean)  # 可实现
+    smart_relevant = db.Column(db.Text)       # 相关性  
+    smart_timebound = db.Column(db.Date)      # 时限性
+    smart_target_level = db.Column(db.String(20))  # 目标级别: basic, challenge, ideal
+    
+    # 动作时间分析字段
+    wfmt_analysis = db.Column(db.Text)        # 动作分析数据
+    standard_time = db.Column(db.Float)       # 标准时间
+    improvement_potential = db.Column(db.Float) # 改善潜力
+    wfmt_tmu_total = db.Column(db.Float)      # 总TMU时间
+    wfmt_allowance_rate = db.Column(db.Float) # 宽放率
+    
     # 用户相关字段 (支持"看用户")
     user_research_data = db.Column(db.Text)           # 用户调研数据
     user_feedback = db.Column(db.Text)                # 用户反馈
