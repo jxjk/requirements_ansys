@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}需求分析系统{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .sidebar {
+            height: 100vh;
+            position: fixed;
+            overflow-y: auto;
+        }
+        .main-content {
+            margin-left: 250px;
+        }
+        .priority-high { border-left: 4px solid #dc3545; }
+        .priority-medium { border-left: 4px solid #ffc107; }
+        .priority-low { border-left: 4px solid #28a745; }
+        .status-completed { opacity: 0.7; }
+        .stakeholder-matrix {
+            position: relative;
+            height: 600px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- 侧边栏 -->
+            <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+                <div class="position-sticky pt-3">
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('index') }}">
+                                <i class="fas fa-home me-2"></i>项目列表
+                            </a>
+                        </li>
+                        {% if project %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('project_detail', project_id=project.id) }}">
+                                <i class="fas fa-project-diagram me-2"></i>项目概览
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('stakeholder_management', project_id=project.id) }}">
+                                <i class="fas fa-users me-2"></i>干系人管理
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('requirement_collection', project_id=project.id) }}">
+                                <i class="fas fa-list-alt me-2"></i>需求采集
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('requirement_analysis', project_id=project.id) }}">
+                                <i class="fas fa-brain me-2"></i>需求分析
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('roadmap_planning', project_id=project.id) }}">
+                                <i class="fas fa-road me-2"></i>路线图规划
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('kano_analysis', project_id=project.id) }}">
+                                <i class="fas fa-chart-bar me-2"></i>KANO分析
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('vsm_analysis', project_id=project.id) }}">
+                                <i class="fas fa-stream me-2"></i>VSM分析
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('smart_goals', project_id=project.id) }}">
+                                <i class="fas fa-bullseye me-2"></i>SMART目标
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('wfmt_analysis', project_id=project.id) }}">
+                                <i class="fas fa-clock me-2"></i>WFMT分析
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('comprehensive_analysis', project_id=project.id) }}">
+                                <i class="fas fa-chart-pie me-2"></i>综合分析
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('value_assessment', project_id=project.id) }}">
+                                <i class="fas fa-chart-line me-2"></i>价值评估
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- 主内容区域 -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-content">
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 全局工具函数
+        const RequirementsAnalyst = {
+            showToast: function(message, type = 'info') {
+                // 创建toast元素
+                const toastHtml = `
+                    <div class="toast align-items-center text-white bg-${type} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                        <div class="d-flex">
+                            <div class="toast-body">
+                                ${message}
+                            </div>
+                            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                        </div>
+                    </div>
+                `;
+                
+                // 添加到页面
+                const toastContainer = document.createElement('div');
+                toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+                toastContainer.innerHTML = toastHtml;
+                document.body.appendChild(toastContainer);
+                
+                // 显示toast
+                const toast = new bootstrap.Toast(toastContainer.querySelector('.toast'));
+                toast.show();
+                
+                // 自动移除
+                setTimeout(() => {
+                    toastContainer.remove();
+                }, 5000);
+            }
+        };
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

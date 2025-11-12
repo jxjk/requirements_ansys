@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据导入导出 - 需求分析系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .import-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .template-card {
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+        }
+        .template-card:hover {
+            border-color: #007bff;
+            background-color: #f8f9ff;
+        }
+        .file-upload-area {
+            border: 2px dashed #007bff;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            background: #f8f9ff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .file-upload-area:hover {
+            background: #e3f2fd;
+        }
+        .file-upload-area.dragover {
+            background: #e3f2fd;
+            border-color: #0056b3;
+        }
+        .progress {
+            height: 8px;
+            margin-top: 10px;
+        }
+        .status-badge {
+            font-size: 0.8em;
+            padding: 4px 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid py-4">
+        <!-- 页面标题 -->
+        <div class="row mb-4">
+            <div class="col">
+                <h2 class="mb-0">
+                    <i class="fas fa-file-import me-2"></i>
+                    数据导入导出
+                </h2>
+                <p class="text-muted">批量导入需求数据或导出分析结果</p>
+            </div>
+        </div>
+
+        <!-- 导入导出导航 -->
+        <div class="row mb-4">
+            <div class="col">
+                <ul class="nav nav-tabs" id="importExportTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="import-tab" data-bs-toggle="tab" data-bs-target="#import" type="button" role="tab">
+                            <i class="fas fa-file-import me-2"></i>数据导入
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="export-tab" data-bs-toggle="tab" data-bs-target="#export" type="button" role="tab">
+                            <i class="fas fa-file-export me-2"></i>数据导出
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="tab-content" id="importExportTabsContent">
+            <!-- 导入标签页 -->
+            <div class="tab-pane fade show active" id="import" role="tabpanel">
+                <div class="row">
+                    <!-- 模板下载区域 -->
+                    <div class="col-md-4">
+                        <div class="import-section">
+                            <h5><i class="fas fa-download me-2"></i>下载模板</h5>
+                            <p class="text-muted small mb-3">下载CSV模板文件，按照格式填写数据后上传</p>
+                            
+                            <div class="template-card">
+                                <h6>基础需求模板</h6>
+                                <p class="small text-muted">包含需求基本信息字段</p>
+                                <button class="btn btn-outline-primary btn-sm" onclick="downloadTemplate('requirements_base')">
+                                    <i class="fas fa-download me-1"></i>下载
+                                </button>
+                            </div>
+                            
+                            <div class="template-card">
+                                <h6>KANO分析模板</h6>
+                                <p class="small text-muted">KANO模型分析数据</p>
+                                <button class="btn btn-outline-primary btn-sm" onclick="downloadTemplate('kano_analysis')">
+                                    <i class="fas fa-download me-1"></i>下载
+                                </button>
+                            </div>
+                            
+                            <div class="template-card">
+                                <h6>VSM分析模板</h6>
+                                <p class="small text-muted">价值流分析数据</p>
+                                <button class="btn btn-outline-primary btn-sm" onclick="downloadTemplate('vsm_analysis')">
+                                    <i class="fas fa-download me-1"></i>下载
+                                </button>
+                            </div>
+                            
+                            <div class="template-card">
+                                <h6>SMART目标模板</h6>
+                                <p class="small text-muted">SMART目标设定数据</p>
+                                <button class="btn btn-outline-primary btn-sm" onclick="downloadTemplate('smart_goals')">
+                                    <i class="fas fa-download me-1"></i>下载
+                                </button>
+                            </div>
+                            
+                            <div class="template-card">
+                                <h6>WFMT分析模板</h6>
+                                <p class="small text-muted">动作时间分析数据</p>
+                                <button class="btn btn-outline-primary btn-sm" onclick="downloadTemplate('wfmt_analysis')">
+                                    <i class="fas fa-download me-1"></i>下载
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 文件上传区域 -->
+                    <div class="col-md-8">
+                        <div class="import-section">
+                            <h5><i class="fas fa-upload me-2"></i>上传文件</h5>
+                            <p class="text-muted small mb-3">选择要上传的CSV文件，支持拖拽上传</p>
+                            
+                            <div class="file-upload-area" id="fileUploadArea" onclick="document.getElementById('fileInput').click()">
+                                <i class="fas fa-cloud-upload-alt fa-3x text-primary mb-3"></i>
+                                <h5>点击或拖拽文件到此处上传</h5>
+                                <p class="text-muted small">支持CSV格式文件，最大10MB</p>
+                                <input type="file" id="fileInput" accept=".csv" style="display: none;" onchange="handleFileSelect(this.files)">
+                            </div>
+                            
+                            <!-- 上传进度 -->
+                            <div id="uploadProgress" class="mt-3" style="display: none;">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span>上传进度</span>
+                                    <span id="progressText">0%</span>
+                                </div>
+                                <div class="progress">
+                                    <div id="progressBar" class="progress-bar" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            
+                            <!-- 上传结果 -->
+                            <div id="uploadResult" class="mt-3" style="display: none;"></div>
+                        </div>
+
+                        <!-- 批量操作 -->
+                        <div class="import-section">
+                            <h5><i class="fas fa-cogs me-2"></i>批量操作</h5>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <button class="btn btn-success w-100 mb-2" onclick="importAllData()">
+                                        <i class="fas fa-play me-2"></i>开始导入
+                                    </button>
+                                </div>
+                                <div class="col-md-6">
+                                    <button class="btn btn-outline-secondary w-100 mb-2" onclick="clearUploads()">
+                                        <i class="fas fa-trash me-2"></i>清空上传
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 导出标签页 -->
+            <div class="tab-pane fade" id="export" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="import-section">
+                            <h5><i class="fas fa-file-excel me-2"></i>导出数据</h5>
+                            <p class="text-muted small mb-3">选择要导出的数据类型和格式</p>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">项目选择</label>
+                                <select class="form-select" id="exportProject">
+                                    <option value="">选择项目...</option>
+                                    <!-- 项目选项将通过JavaScript动态加载 -->
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">数据类型</label>
+                                <select class="form-select" id="exportDataType">
+                                    <option value="requirements">基础需求数据</option>
+                                    <option value="kano">KANO分析数据</option>
+                                    <option value="vsm">VSM分析数据</option>
+                                    <option value="smart">SMART目标数据</option>
+                                    <option value="wfmt">WFMT分析数据</option>
+                                    <option value="comprehensive">综合分析报告</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">导出格式</label>
+                                <div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="exportFormat" id="formatCsv" value="csv" checked>
+                                        <label class="form-check-label" for="formatCsv">CSV</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="exportFormat" id="formatJson" value="json">
+                                        <label class="form-check-label" for="formatJson">JSON</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="exportFormat" id="formatExcel" value="excel">
+                                        <label class="form-check-label" for="formatExcel">Excel</label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <button class="btn btn-primary w-100" onclick="exportData()">
+                                <i class="fas fa-download me-2"></i>开始导出
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="import-section">
+                            <h5><i class="fas fa-history me-2"></i>导出历史</h5>
+                            <p class="text-muted small mb-3">最近的导出记录</p>
+                            
+                            <div id="exportHistory">
+                                <div class="text-center text-muted py-4">
+                                    <i class="fas fa-clock fa-2x mb-2"></i>
+                                    <p>暂无导出记录</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 拖拽上传功能
+        const fileUploadArea = document.getElementById('fileUploadArea');
+        const fileInput = document.getElementById('fileInput');
+        
+        fileUploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            fileUploadArea.classList.add('dragover');
+        });
+        
+        fileUploadArea.addEventListener('dragleave', () => {
+            fileUploadArea.classList.remove('dragover');
+        });
+        
+        fileUploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            fileUploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            handleFileSelect(files);
+        });
+        
+        // 处理文件选择
+        function handleFileSelect(files) {
+            if (files.length === 0) return;
+            
+            const file = files[0];
+            if (!file.name.endsWith('.csv')) {
+                showUploadResult('error', '请选择CSV格式的文件');
+                return;
+            }
+            
+            // 显示上传进度
+            const progressDiv = document.getElementById('uploadProgress');
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+            
+            progressDiv.style.display = 'block';
+            
+            // 模拟上传进度
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += 5;
+                progressBar.style.width = progress + '%';
+                progressText.textContent = progress + '%';
+                
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    processUploadedFile(file);
+                }
+            }, 100);
+        }
+        
+        // 处理上传的文件
+        function processUploadedFile(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const csvContent = e.target.result;
+                    const lines = csvContent.split('\n');
+                    const headers = lines[0].split(',');
+                    
+                    // 根据文件内容判断数据类型
+                    let dataType = detectDataType(headers);
+                    
+                    showUploadResult('success', 
+                        `文件 "${file.name}" 上传成功<br>
+                         数据类型: ${dataType}<br>
+                         记录数: ${lines.length - 1} 条`);
+                         
+                    // 保存文件信息到全局变量
+                    window.uploadedFiles = window.uploadedFiles || [];
+                    window.uploadedFiles.push({
+                        name: file.name,
+                        type: dataType,
+                        content: csvContent,
+                        timestamp: new Date().toLocaleString()
+                    });
+                    
+                } catch (error) {
+                    showUploadResult('error', '文件解析失败: ' + error.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+        
+        // 检测数据类型
+        function detectDataType(headers) {
+            const headerStr = headers.join(',').toLowerCase();
+            
+            if (headerStr.includes('kano_category')) return 'KANO分析';
+            if (headerStr.includes('vsm_process_steps')) return 'VSM分析';
+            if (headerStr.includes('smart_specific')) return 'SMART目标';
+            if (headerStr.includes('wfmt_tmu_total')) return 'WFMT分析';
+            if (headerStr.includes('title') && headerStr.includes('requirement_type')) return '基础需求';
+            
+            return '未知类型';
+        }
+        
+        // 显示上传结果
+        function showUploadResult(type, message) {
+            const resultDiv = document.getElementById('uploadResult');
+            const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+            
+            resultDiv.innerHTML = `
+                <div class="alert ${alertClass} alert-dismissible fade show">
+                    <div>${message}</div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            resultDiv.style.display = 'block';
+        }
+        
+        // 下载模板
+        function downloadTemplate(templateType) {
+            const url = `/api/templates/${templateType}`;
+            window.open(url, '_blank');
+        }
+        
+        // 导入所有数据
+        function importAllData() {
+            if (!window.uploadedFiles || window.uploadedFiles.length === 0) {
+                showUploadResult('error', '请先上传文件');
+                return;
+            }
+            
+            // 模拟导入过程
+            showUploadResult('info', '开始导入数据...');
+            
+            setTimeout(() => {
+                let successCount = 0;
+                let errorCount = 0;
+                
+                window.uploadedFiles.forEach(file => {
+                    // 这里应该调用实际的API导入数据
+                    // 暂时模拟导入结果
+                    if (Math.random() > 0.2) { // 80%成功率
+                        successCount++;
+                    } else {
+                        errorCount++;
+                    }
+                });
+                
+                showUploadResult('success', 
+                    `数据导入完成<br>
+                     成功: ${successCount} 个文件<br>
+                     失败: ${errorCount} 个文件`);
+                     
+                // 清空上传文件列表
+                window.uploadedFiles = [];
+            }, 2000);
+        }
+        
+        // 清空上传
+        function clearUploads() {
+            window.uploadedFiles = [];
+            document.getElementById('uploadResult').style.display = 'none';
+            document.getElementById('uploadProgress').style.display = 'none';
+            fileInput.value = '';
+            showUploadResult('info', '已清空上传文件列表');
+        }
+        
+        // 导出数据
+        function exportData() {
+            const projectId = document.getElementById('exportProject').value;
+            const dataType = document.getElementById('exportDataType').value;
+            const format = document.querySelector('input[name="exportFormat"]:checked').value;
+            
+            if (!projectId) {
+                alert('请选择项目');
+                return;
+            }
+            
+            // 构建导出URL
+            let url = `/api/export/${dataType}/${projectId}`;
+            if (format !== 'csv') {
+                url += `?format=${format}`;
+            }
+            
+            // 打开新窗口下载
+            window.open(url, '_blank');
+            
+            // 添加到导出历史
+            addToExportHistory(projectId, dataType, format);
+        }
+        
+        // 添加到导出历史
+        function addToExportHistory(projectId, dataType, format) {
+            const historyDiv = document.getElementById('exportHistory');
+            const timestamp = new Date().toLocaleString();
+            
+            const historyItem = document.createElement('div');
+            historyItem.className = 'd-flex justify-content-between align-items-center border-bottom py-2';
+            historyItem.innerHTML = `
+                <div>
+                    <small class="text-muted">${timestamp}</small><br>
+                    <strong>${getDataTypeName(dataType)}</strong> - ${format.toUpperCase()}
+                </div>
+                <span class="badge bg-success status-badge">完成</span>
+            `;
+            
+            // 如果当前显示的是"暂无导出记录"，则替换内容
+            if (historyDiv.querySelector('.text-center')) {
+                historyDiv.innerHTML = '';
+            }
+            
+            historyDiv.prepend(historyItem);
+        }
+        
+        // 获取数据类型名称
+        function getDataTypeName(dataType) {
+            const names = {
+                'requirements': '基础需求数据',
+                'kano': 'KANO分析数据',
+                'vsm': 'VSM分析数据',
+                'smart': 'SMART目标数据',
+                'wfmt': 'WFMT分析数据',
+                'comprehensive': '综合分析报告'
+            };
+            return names[dataType] || dataType;
+        }
+        
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 加载项目列表
+            loadProjects();
+        });
+        
+        // 加载项目列表
+        function loadProjects() {
+            // 这里应该调用API获取项目列表
+            // 暂时使用模拟数据
+            const projects = [
+                { id: 1, name: '需求定义辅助软件项目' },
+                { id: 2, name: '生产管理系统优化' }
+            ];
+            
+            const select = document.getElementById('exportProject');
+            projects.forEach(project => {
+                const option = document.createElement('option');
+                option.value = project.id;
+                option.textContent = project.name;
+                select.appendChild(option);
+            });
+        }
+    </script>
+</body>
+</html>
