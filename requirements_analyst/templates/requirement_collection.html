@@ -125,7 +125,12 @@
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="requirementSource" class="form-label">需求来源</label>
-                                <input type="text" class="form-control" id="requirementSource">
+                                <select class="form-select" id="requirementSource">
+                                    <option value="">请选择干系人</option>
+                                    {% for stakeholder in stakeholders %}
+                                    <option value="{{ stakeholder.name }}">{{ stakeholder.name }}</option>
+                                    {% endfor %}
+                                </select>
                             </div>
                         </div>
                         <div class="col-md-6">

@@ -30,7 +30,7 @@
             <div class="card-header bg-danger text-white">
                 <h5 class="d-flex justify-content-between align-items-center mb-0">
                     <span>基本型需求 (Must-be)</span>
-                    <span class="badge bg-light text-dark">{{ kano_groups.must_be|length }}</span>
+                    <span class="badge bg-light text-dark">{{ kano_groups.must_be|length if kano_groups is defined and kano_groups.must_be is defined else "0" }}</span>
                 </h5>
             </div>
             <div class="card-body">

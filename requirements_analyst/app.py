@@ -62,6 +62,44 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+def require_project_access(f):
+    """装饰器：要求用户对项目有访问权限"""
+    @functools.wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            return redirect(url_for('login'))
+        
+        # 获取项目ID
+        project_id = kwargs.get('project_id')
+        if not project_id:
+            return jsonify({'success': False, 'error': '项目ID缺失'}), 400
+        
+        # 获取项目和用户信息
+        project = Project.query.get(project_id)
+        if not project:
+            flash('项目不存在', 'error')
+            return redirect(url_for('index'))
+        
+        user_id = session['user_id']
+        user_role = 'user'  # 默认角色
+        
+        # 检查用户是否是管理员
+        if user_id == 'admin':
+            user_role = 'admin'
+        
+        # 检查是否是干系人管理路由
+        check_type = 'default'
+        if request.endpoint and 'stakeholder' in request.endpoint:
+            check_type = 'stakeholder'
+        
+        # 检查用户是否有权限访问该项目
+        if not project.can_be_accessed_by(user_id, user_role, check_type):
+            flash('您没有权限访问该项目', 'error')
+            return redirect(url_for('index'))
+        
+        return f(*args, **kwargs)
+    return decorated_function
+
 def verify_user(username, password):
     """验证用户凭据"""
     if 'USERS' not in config:
@@ -111,8 +149,21 @@ def index():
     """主页 - 项目列表"""
     if 'user_id' not in session:
         return redirect(url_for('login'))
-        
-    projects = Project.query.all()
+    
+    user_id = session['user_id']
+    user_role = 'user'
+    
+    # 检查用户是否是管理员
+    if user_id == 'admin':
+        user_role = 'admin'
+    
+    # 管理员可以看到所有项目
+    if user_role == 'admin':
+        projects = Project.query.all()
+    else:
+        # 普通用户只能看到自己创建的项目
+        projects = Project.query.filter_by(creator=user_id).all()
+    
     response = make_response(render_template('index.html', projects=projects))
     return response
 
@@ -174,7 +225,8 @@ def create_project():
     description = request.form.get('description')
     
     if name:
-        project = Project(name=name, description=description)
+        # 记录项目创建者
+        project = Project(name=name, description=description, creator=session['user_id'])
         db.session.add(project)
         db.session.commit()
         logger.info(f"用户 {session['user_id']} 创建了项目: {name}")
@@ -183,6 +235,7 @@ def create_project():
 
 @app.route('/project/<int:project_id>/delete', methods=['POST'])
 @login_required
+@require_project_access
 def delete_project(project_id):
     """删除项目"""
     project = Project.query.get_or_404(project_id)
@@ -204,6 +257,7 @@ def delete_project(project_id):
 
 @app.route('/project/<int:project_id>')
 @login_required
+@require_project_access
 def project_detail(project_id):
     """项目详情页"""
     project = Project.query.get_or_404(project_id)
@@ -213,6 +267,7 @@ def project_detail(project_id):
 # 干系人管理路由
 @app.route('/project/<int:project_id>/stakeholders')
 @login_required
+@require_project_access
 def stakeholder_management(project_id):
     """干系人管理页面"""
     project = Project.query.get_or_404(project_id)
@@ -221,6 +276,7 @@ def stakeholder_management(project_id):
 
 @app.route('/api/stakeholders/<int:project_id>', methods=['GET', 'POST'])
 @login_required
+@require_project_access
 def api_stakeholders(project_id):
     """干系人API接口"""
     if request.method == 'POST':
@@ -301,17 +357,20 @@ def api_stakeholder_detail(project_id, stakeholder_id):
 # 需求采集路由
 @app.route('/project/<int:project_id>/requirements')
 @login_required
+@require_project_access
 def requirement_collection(project_id):
-    """需求采集页面"""
+    """需求收集页面"""
     project = Project.query.get_or_404(project_id)
     stakeholders = Stakeholder.query.filter_by(project_id=project_id).all()
     response = make_response(render_template('requirement_collection.html', 
-                          project=project, stakeholders=stakeholders))
+                                           project=project, 
+                                           stakeholders=stakeholders))
     return response
 
 # 需求API接口 - 完整版本
-@app.route('/api/requirements/<int:project_id>', methods=['GET', 'POST'])
+@app.route('/api/requirements/<int:project_id>', methods=['GET', 'POST', 'PUT', 'DELETE'])
 @login_required
+@require_project_access
 def api_requirements(project_id):
     """需求API接口"""
     if request.method == 'POST':
@@ -452,7 +511,54 @@ def api_requirement_detail(req_id):
             'value': requirement.value,
             'other_info': requirement.other_info,
             'created_at': requirement.created_at.isoformat() if requirement.created_at else None,
-            'updated_at': requirement.updated_at.isoformat() if requirement.updated_at else None
+            'updated_at': requirement.updated_at.isoformat() if requirement.updated_at else None,
+            
+            # 用户分析字段
+            'target_user_group': requirement.target_user_group,
+            'user_research_data': requirement.user_research_data,
+            'user_feedback': requirement.user_feedback,
+            'user_satisfaction': requirement.user_satisfaction,
+            
+            # 竞品分析字段
+            'competitor_analysis': requirement.competitor_analysis,
+            'competitor_products': requirement.competitor_products,
+            'competitive_advantage': requirement.competitive_advantage,
+            
+            # 市场分析字段
+            'market_research': requirement.market_research,
+            'market_size': requirement.market_size,
+            'market_trends': requirement.market_trends,
+            
+            # 现状分析字段
+            'current_state_analysis': requirement.current_state_analysis,
+            'product_lifecycle_stage': requirement.product_lifecycle_stage,
+            'technical_constraints': requirement.technical_constraints,
+            'resource_constraints': requirement.resource_constraints,
+            
+            # 风险评估字段
+            'risk_assessment': requirement.risk_assessment,
+            'technical_risks': requirement.technical_risks,
+            'business_risks': requirement.business_risks,
+            'implementation_risks': requirement.implementation_risks,
+            
+            # 其他分析字段
+            'dependencies': requirement.dependencies,
+            'alternative_solutions': requirement.alternative_solutions,
+            'success_metrics': requirement.success_metrics,
+            
+            # SMART目标字段
+            'smart_specific': requirement.smart_specific,
+            'smart_measurable': requirement.smart_measurable,
+            'smart_achievable': requirement.smart_achievable,
+            'smart_relevant': requirement.smart_relevant,
+            'smart_timebound': requirement.smart_timebound.isoformat() if requirement.smart_timebound else None,
+            
+            # 优先级等级和预期完成日期
+            'priority_level': requirement.priority_level,
+            'expected_completion_date': requirement.expected_completion_date.isoformat() if requirement.expected_completion_date else None,
+            
+            # 验收标准
+            'acceptance_criteria': requirement.acceptance_criteria
         })
         return response
     
@@ -493,6 +599,54 @@ def api_requirement_detail(req_id):
                 requirement.estimated_roi = 0
             
             requirement.value_assessor = data.get('value_assessor', requirement.value_assessor)
+            
+            # 用户分析字段
+            requirement.target_user_group = data.get('target_user_group', requirement.target_user_group)
+            requirement.user_research_data = data.get('user_research_data', requirement.user_research_data)
+            requirement.user_feedback = data.get('user_feedback', requirement.user_feedback)
+            requirement.user_satisfaction = data.get('user_satisfaction', requirement.user_satisfaction)
+            
+            # 竞品分析字段
+            requirement.competitor_analysis = data.get('competitor_analysis', requirement.competitor_analysis)
+            requirement.competitor_products = data.get('competitor_products', requirement.competitor_products)
+            requirement.competitive_advantage = data.get('competitive_advantage', requirement.competitive_advantage)
+            
+            # 市场分析字段
+            requirement.market_research = data.get('market_research', requirement.market_research)
+            requirement.market_size = data.get('market_size', requirement.market_size)
+            requirement.market_trends = data.get('market_trends', requirement.market_trends)
+            
+            # 现状分析字段
+            requirement.current_state_analysis = data.get('current_state_analysis', requirement.current_state_analysis)
+            requirement.product_lifecycle_stage = data.get('product_lifecycle_stage', requirement.product_lifecycle_stage)
+            requirement.technical_constraints = data.get('technical_constraints', requirement.technical_constraints)
+            requirement.resource_constraints = data.get('resource_constraints', requirement.resource_constraints)
+            
+            # 风险评估字段
+            requirement.risk_assessment = data.get('risk_assessment', requirement.risk_assessment)
+            requirement.technical_risks = data.get('technical_risks', requirement.technical_risks)
+            requirement.business_risks = data.get('business_risks', requirement.business_risks)
+            requirement.implementation_risks = data.get('implementation_risks', requirement.implementation_risks)
+            
+            # 其他分析字段
+            requirement.dependencies = data.get('dependencies', requirement.dependencies)
+            requirement.alternative_solutions = data.get('alternative_solutions', requirement.alternative_solutions)
+            requirement.success_metrics = data.get('success_metrics', requirement.success_metrics)
+            
+            # SMART目标字段
+            requirement.smart_specific = data.get('smart_specific', requirement.smart_specific)
+            requirement.smart_measurable = data.get('smart_measurable', requirement.smart_measurable)
+            requirement.smart_achievable = data.get('smart_achievable', requirement.smart_achievable)
+            requirement.smart_relevant = data.get('smart_relevant', requirement.smart_relevant)
+            requirement.smart_timebound = data.get('smart_timebound', requirement.smart_timebound)
+            
+            # 优先级等级和预期完成日期
+            requirement.priority_level = data.get('priority_level', requirement.priority_level)
+            requirement.expected_completion_date = data.get('expected_completion_date', requirement.expected_completion_date)
+            
+            # 验收标准
+            requirement.acceptance_criteria = data.get('acceptance_criteria', requirement.acceptance_criteria)
+            
             requirement.updated_at = datetime.utcnow()
             
             db.session.commit()
@@ -527,53 +681,81 @@ def get_requirement_detail(req_id):
         'goal': requirement.goal,
         'expected_solution': requirement.expected_solution,
         'value': requirement.value,
-        'other_info': requirement.other_info
+        'priority_level': requirement.priority_level,
+        'other_info': requirement.other_info,
+        'source': requirement.source,
+        'category': requirement.category,
+        'priority': requirement.priority,
+        'status': requirement.status,
+        'acceptance_criteria': requirement.acceptance_criteria,
+        'expected_completion_date': requirement.expected_completion_date.strftime('%Y-%m-%d') if requirement.expected_completion_date else None,
+        
+        # 用户分析字段
+        'target_user_group': requirement.target_user_group,
+        'user_research_data': requirement.user_research_data,
+        'user_feedback': requirement.user_feedback,
+        'user_satisfaction': requirement.user_satisfaction,
+        
+        # 竞品分析字段
+        'competitor_analysis': requirement.competitor_analysis,
+        'competitor_products': requirement.competitor_products,
+        'competitive_advantage': requirement.competitive_advantage,
+        
+        # 市场分析字段
+        'market_research': requirement.market_research,
+        'market_size': requirement.market_size,
+        'market_trends': requirement.market_trends,
+        
+        # 现状分析字段
+        'current_state_analysis': requirement.current_state_analysis,
+        'product_lifecycle_stage': requirement.product_lifecycle_stage,
+        'technical_constraints': requirement.technical_constraints,
+        'resource_constraints': requirement.resource_constraints,
+        
+        # 风险评估字段
+        'risk_assessment': requirement.risk_assessment,
+        'technical_risks': requirement.technical_risks,
+        'business_risks': requirement.business_risks,
+        'implementation_risks': requirement.implementation_risks,
+        
+        # 其他分析字段
+        'dependencies': requirement.dependencies,
+        'alternative_solutions': requirement.alternative_solutions,
+        'success_metrics': requirement.success_metrics,
+        
+        # SMART目标字段
+        'smart_specific': requirement.smart_specific,
+        'smart_measurable': requirement.smart_measurable,
+        'smart_achievable': requirement.smart_achievable,
+        'smart_relevant': requirement.smart_relevant,
+        'smart_timebound': requirement.smart_timebound,
+        
+        # 价值评估字段
+        'estimated_business_value': requirement.estimated_business_value,
+        'estimated_user_value': requirement.estimated_user_value,
+        'estimated_technical_value': requirement.estimated_technical_value,
+        'estimated_effort': requirement.estimated_effort,
+        'estimated_roi': float(requirement.estimated_roi) if requirement.estimated_roi else 0,
+        'value_assessor': requirement.value_assessor,
+        
+        # KANO分类
+        'kano_category': requirement.kano_category,
+        
+        # VSM相关字段
+        'vsm_process_steps': requirement.vsm_process_steps,
+        'cycle_time': requirement.cycle_time,
+        'lead_time': requirement.lead_time
     })
-    return response
+    return add_cache_headers(response)
 
 # 价值评估路由
 @app.route('/project/<int:project_id>/value-assessment')
 @login_required
+@require_project_access
 def value_assessment(project_id):
     """价值评估页面"""
     project = Project.query.get_or_404(project_id)
-    requirements = Requirement.query.filter_by(project_id=project_id).all()
-    
-    # 计算已完成价值评估的需求
-    completed_requirements = [r for r in requirements if r.actual_roi is not None]
-    
-    # 计算平均准确度
-    average_accuracy = 0
-    if completed_requirements:
-        total_accuracy = 0
-        for r in completed_requirements:
-            if r.actual_roi and r.estimated_roi:
-                accuracy = (1 - abs(r.actual_roi - r.estimated_roi) / r.actual_roi) * 100
-                total_accuracy += accuracy
-        average_accuracy = total_accuracy / len(completed_requirements)
-    
-    # 计算最佳评估者
-    performer_scores = {}
-    for r in completed_requirements:
-        if r.actual_value_assessor:
-            if r.actual_value_assessor not in performer_scores:
-                performer_scores[r.actual_value_assessor] = []
-            if r.actual_roi and r.estimated_roi:
-                accuracy = (1 - abs(r.actual_roi - r.estimated_roi) / r.actual_roi) * 100
-                performer_scores[r.actual_value_assessor].append(accuracy)
-    
-    best_performer = None
-    if performer_scores:
-        avg_scores = {k: sum(v)/len(v) for k, v in performer_scores.items()}
-        best_performer = max(avg_scores.items(), key=lambda x: x[1])[0]
-    
-    response = make_response(render_template('value_assessment.html',
-                         project=project,
-                         requirements=requirements,
-                         completed_requirements=completed_requirements,
-                         average_accuracy=average_accuracy/100,
-                         best_performer=best_performer,
-                         improvement_trend="↑ 改善" if len(completed_requirements) > 3 else "→ 稳定"))
+    response = make_response(render_template('value_assessment.html', project=project))
     return response
 
 @app.route('/api/requirements/<int:req_id>/actual-value', methods=['POST'])
@@ -630,53 +812,54 @@ def export_value_report(project_id):
     return response
 
 # 需求分析路由
-@app.route('/project/<int:project_id>/requirement-analysis')
+@app.route('/project/<int:project_id>/analysis')
 @login_required
+@require_project_access
 def requirement_analysis(project_id):
     """需求分析页面"""
     project = Project.query.get_or_404(project_id)
     requirements = Requirement.query.filter_by(project_id=project_id).all()
-    
-    # 统计优先级和分类
-    priority_stats = {}
-    category_stats = {}
-    for req in requirements:
-        priority_stats[req.priority] = priority_stats.get(req.priority, 0) + 1
-        category_stats[req.category] = category_stats.get(req.category, 0) + 1
-    
-    response = make_response(render_template('requirement_analysis.html',
-                          project=project,
-                          requirements=requirements,
-                          priority_stats=priority_stats,
-                          category_stats=category_stats))
+    response = make_response(render_template('requirement_analysis.html', 
+                                          project=project, 
+                                          requirements=requirements))
     return response
+
+@app.route('/api/analysis/<int:project_id>')
+@login_required
+@require_project_access
+def api_analysis(project_id):
+    """需求分析API接口"""
+    # 获取项目的所有需求
+    requirements = Requirement.query.filter_by(project_id=project_id).all()
+    
+    # 转换为JSON格式
+    requirements_data = [{
+        'id': r.id,
+        'title': r.title,
+        'description': r.description,
+        'priority': r.priority,
+        'status': r.status,
+        'category': r.category,
+        'requirement_type': r.requirement_type,
+        'source': r.source,
+        'estimated_roi': float(r.estimated_roi) if r.estimated_roi else 0,
+        'actual_roi': float(r.actual_roi) if r.actual_roi else 0,
+        'kano_category': r.kano_category,
+        'created_at': r.created_at.isoformat() if r.created_at else None,
+        'updated_at': r.updated_at.isoformat() if r.updated_at else None
+    } for r in requirements]
+    
+    return add_cache_headers(jsonify(requirements_data))
 
 # 路线图规划路由
 @app.route('/project/<int:project_id>/roadmap')
 @login_required
+@require_project_access
 def roadmap_planning(project_id):
     """路线图规划页面"""
     project = Project.query.get_or_404(project_id)
-    milestones = Milestone.query.filter_by(project_id=project_id).order_by(Milestone.deadline).all()
-    requirements = Requirement.query.filter_by(project_id=project_id).all()
-    
-    # 按状态分组需求
-    status_groups = {
-        'collected': [],
-        'analyzed': [],
-        'approved': [],
-        'implemented': [],
-        'validated': []
-    }
-    
-    for req in requirements:
-        if req.status in status_groups:
-            status_groups[req.status].append(req)
-    
-    response = make_response(render_template('roadmap_planning.html',
-                          project=project,
-                          milestones=milestones,
-                          status_groups=status_groups))
+    milestones = Milestone.query.filter_by(project_id=project_id).all()
+    response = make_response(render_template('roadmap_planning.html', project=project, milestones=milestones))
     return response
 
 @app.route('/api/roadmap/<int:project_id>')
@@ -710,6 +893,7 @@ def api_roadmap_data(project_id):
 
 @app.route('/api/milestones/<int:project_id>', methods=['GET', 'POST'])
 @login_required
+@require_project_access
 def api_milestones(project_id):
     """里程碑API接口"""
     if request.method == 'POST':
@@ -747,9 +931,10 @@ def api_milestones(project_id):
     } for m in milestones])
     return response
 
-@app.route('/api/milestones/<int:milestone_id>', methods=['PUT', 'DELETE'])
+@app.route('/api/milestone/<int:milestone_id>', methods=['PUT', 'DELETE'])
 @login_required
-def api_milestone_detail(milestone_id):
+@require_project_access
+def api_milestone(milestone_id):
     """单个里程碑API接口"""
     milestone = Milestone.query.get_or_404(milestone_id)
     
@@ -787,138 +972,154 @@ def api_milestone_detail(milestone_id):
 # KANO分析路由
 @app.route('/project/<int:project_id>/kano')
 @login_required
+@require_project_access
 def kano_analysis(project_id):
-    """KANO分析页面"""
+    """Kano模型分析页面"""
     project = Project.query.get_or_404(project_id)
     requirements = Requirement.query.filter_by(project_id=project_id).all()
     
-    # 按KANO分类分组
+    # 按KANO分类分组需求
     kano_groups = {
-        'must_be': [],
-        'one_dimensional': [],
-        'attractive': [],
-        'indifferent': [],
-        'reverse': []
+        'must_be': [r for r in requirements if r.kano_category == 'must_be'],
+        'one_dimensional': [r for r in requirements if r.kano_category == 'one_dimensional'],
+        'attractive': [r for r in requirements if r.kano_category == 'attractive'],
+        'indifferent': [r for r in requirements if r.kano_category == 'indifferent'],
+        'reverse': [r for r in requirements if r.kano_category == 'reverse']
     }
     
-    for req in requirements:
-        if req.kano_category in kano_groups:
-            kano_groups[req.kano_category].append(req)
-    
-    response = make_response(render_template('kano_analysis.html',
-                          project=project,
-                          kano_groups=kano_groups))
+    response = make_response(render_template('kano_analysis.html', 
+                                          project=project, 
+                                          kano_groups=kano_groups))
     return response
+
+@app.route('/api/kano/<int:project_id>')
+@login_required
+@require_project_access
+def api_kano_analysis(project_id):
+    """KANO分析API接口"""
+    requirements = Requirement.query.filter_by(project_id=project_id).all()
+    
+    # 按KANO分类分组需求
+    kano_groups = {
+        'must_be': [r for r in requirements if r.kano_category == 'must_be'],
+        'one_dimensional': [r for r in requirements if r.kano_category == 'one_dimensional'],
+        'attractive': [r for r in requirements if r.kano_category == 'attractive'],
+        'indifferent': [r for r in requirements if r.kano_category == 'indifferent'],
+        'reverse': [r for r in requirements if r.kano_category == 'reverse']
+    }
+    
+    # 准备返回数据
+    result = {
+        'success': True,
+        'kano_groups': {
+            'must_be': [{
+                'id': r.id,
+                'title': r.title,
+                'description': r.description,
+                'source': r.source,
+                'priority': r.priority
+            } for r in kano_groups['must_be']],
+            'one_dimensional': [{
+                'id': r.id,
+                'title': r.title,
+                'description': r.description,
+                'source': r.source,
+                'priority': r.priority
+            } for r in kano_groups['one_dimensional']],
+            'attractive': [{
+                'id': r.id,
+                'title': r.title,
+                'description': r.description,
+                'source': r.source,
+                'priority': r.priority
+            } for r in kano_groups['attractive']],
+            'indifferent': [{
+                'id': r.id,
+                'title': r.title,
+                'description': r.description,
+                'source': r.source,
+                'priority': r.priority
+            } for r in kano_groups['indifferent']],
+            'reverse': [{
+                'id': r.id,
+                'title': r.title,
+                'description': r.description,
+                'source': r.source,
+                'priority': r.priority
+            } for r in kano_groups['reverse']]
+        }
+    }
+    
+    return add_cache_headers(jsonify(result))
 
 # VSM分析路由
 @app.route('/project/<int:project_id>/vsm')
 @login_required
+@require_project_access
 def vsm_analysis(project_id):
-    """VSM分析页面"""
+    """价值流图分析页面"""
     project = Project.query.get_or_404(project_id)
-    requirements = Requirement.query.filter_by(project_id=project_id).filter(Requirement.vsm_process_steps != None).all()
-    
-    response = make_response(render_template('vsm_analysis.html',
-                          project=project,
-                          requirements=requirements))
+    response = make_response(render_template('vsm_analysis.html', project=project))
     return response
 
-# SMART目标路由
-@app.route('/project/<int:project_id>/smart')
+@app.route('/api/vsm/<int:project_id>')
 @login_required
+@require_project_access
+def api_vsm_analysis(project_id):
+    """VSM分析API接口"""
+
+# SMART目标路由
+@app.route('/project/<int:project_id>/smart-goals')
+@login_required
+@require_project_access
 def smart_goals(project_id):
-    """SMART目标页面"""
+    """SMART目标设定页面"""
     project = Project.query.get_or_404(project_id)
-    requirements = Requirement.query.filter_by(project_id=project_id).filter(Requirement.smart_specific != None).all()
-    
-    response = make_response(render_template('smart_goals.html',
-                          project=project,
-                          requirements=requirements))
+    response = make_response(render_template('smart_goals.html', project=project))
     return response
+
+@app.route('/api/smart-goals/<int:project_id>')
+@login_required
+@require_project_access
+def api_smart_goals(project_id):
+    """SMART目标API接口"""
 
 # WFMT分析路由
 @app.route('/project/<int:project_id>/wfmt')
 @login_required
+@require_project_access
 def wfmt_analysis(project_id):
     """WFMT分析页面"""
     project = Project.query.get_or_404(project_id)
-    requirements = Requirement.query.filter_by(project_id=project_id).all()
-    
-    # 筛选有WFMT数据的需求
-    wfmt_requirements = [r for r in requirements if r.standard_time is not None]
-    
-    response = make_response(render_template('wfmt_analysis.html',
-                          project=project,
-                          requirements=wfmt_requirements))
+    response = make_response(render_template('wfmt_analysis.html', project=project))
     return response
+
+@app.route('/api/wfmt/<int:project_id>')
+@login_required
+@require_project_access
+def api_wfmt_analysis(project_id):
+    """WFMT分析API接口"""
 
 # 看板视图路由
 @app.route('/project/<int:project_id>/kanban')
 @login_required
-def kanban_view(project_id):
-    """看板视图页面"""
+@require_project_access
+def kanban(project_id):
+    """看板页面"""
     project = Project.query.get_or_404(project_id)
-    requirements = Requirement.query.filter_by(project_id=project_id).all()
-    
-    status_groups = {
-        'collected': [r for r in requirements if r.status == 'collected'],
-        'analyzing': [r for r in requirements if r.status == 'analyzing'],
-        'confirmed': [r for r in requirements if r.status == 'confirmed'],
-        'rejected': [r for r in requirements if r.status == 'rejected']
-    }
-    
-    response = make_response(render_template('kanban.html',
-                          project=project,
-                          status_groups=status_groups))
+    response = make_response(render_template('kanban.html', project=project))
     return response
 
-@app.route('/api/wfmt/<int:project_id>', methods=['GET', 'POST'])
+@app.route('/api/kanban/<int:project_id>')
 @login_required
-def api_wfmt_analysis(project_id):
-    """WFMT分析API"""
-    if request.method == 'POST':
-        try:
-            data = request.get_json()
-            requirement_id = data.get('requirement_id')
-            
-            requirement = Requirement.query.filter_by(id=requirement_id, project_id=project_id).first_or_404()
-            
-            # 更新WFMT相关字段
-            requirement.wfmt_analysis = data.get('analysis_data')
-            requirement.standard_time = data.get('standard_time')
-            requirement.improvement_potential = data.get('improvement_potential')
-            requirement.wfmt_tmu_total = data.get('tmu_total')
-            requirement.wfmt_allowance_rate = data.get('allowance_rate', 15.0)  # 默认15%宽放率
-            
-            db.session.commit()
-            logger.info(f"用户 {session['user_id']} 为需求 {requirement.title} 更新了WFMT分析数据")
-            return add_cache_headers(jsonify({'success': True}))
-            
-        except Exception as e:
-            db.session.rollback()
-            logger.error(f"Error in WFMT analysis: {str(e)}")
-            return add_cache_headers(jsonify({'success': False, 'error': str(e)}), 500)
-    
-    # GET方法 - 获取项目的WFMT分析概览
-    requirements = Requirement.query.filter_by(project_id=project_id).all()
-    wfmt_data = []
-    
-    for req in requirements:
-        if req.standard_time:
-            wfmt_data.append({
-                'id': req.id,
-                'title': req.title,
-                'standard_time': req.standard_time,
-                'improvement_potential': req.improvement_potential,
-                'tmu_total': req.wfmt_tmu_total,
-                'allowance_rate': req.wfmt_allowance_rate
-            })
-    
-    return add_cache_headers(jsonify(wfmt_data))
+@require_project_access
+def api_kanban(project_id):
+    """看板API接口"""
 
 # 综合分析报告API
 @app.route('/project/<int:project_id>/comprehensive-analysis')
 @login_required
+@require_project_access
 def comprehensive_analysis(project_id):
     """综合分析页面"""
     project = Project.query.get_or_404(project_id)
@@ -927,79 +1128,48 @@ def comprehensive_analysis(project_id):
 
 @app.route('/api/comprehensive-analysis/<int:project_id>')
 @login_required
-def comprehensive_analysis_api(project_id):
-    """综合分析报告API"""
+@require_project_access
+def api_comprehensive_analysis(project_id):
+    """综合分析API接口"""
     try:
         project = Project.query.get_or_404(project_id)
+        
+        # 获取项目的所有需求
         requirements = Requirement.query.filter_by(project_id=project_id).all()
         
-        # 数据质量分析
-        total_requirements = len(requirements)
-        requirements_with_kano = len([r for r in requirements if r.kano_category])
-        requirements_with_vsm = len([r for r in requirements if r.vsm_process_steps])
-        requirements_with_smart = len([r for r in requirements if r.smart_specific])
-        requirements_with_wfmt = len([r for r in requirements if r.standard_time is not None])
-        requirements_with_value = len([r for r in requirements if r.estimated_roi is not None])
-        
-        data_quality = {
-            'total_requirements': total_requirements,
-            'kano_completion_rate': (requirements_with_kano / total_requirements * 100) if total_requirements > 0 else 0,
-            'vsm_completion_rate': (requirements_with_vsm / total_requirements * 100) if total_requirements > 0 else 0,
-            'smart_completion_rate': (requirements_with_smart / total_requirements * 100) if total_requirements > 0 else 0,
-            'wfmt_completion_rate': (requirements_with_wfmt / total_requirements * 100) if total_requirements > 0 else 0,
-            'value_completion_rate': (requirements_with_value / total_requirements * 100) if total_requirements > 0 else 0,
-        }
-        
-        # 计算整体完成率
-        overall_completion_rate = (
-            data_quality['kano_completion_rate'] +
-            data_quality['vsm_completion_rate'] +
-            data_quality['smart_completion_rate'] +
-            data_quality['wfmt_completion_rate'] +
-            data_quality['value_completion_rate']
-        ) / 5
-        
-        data_quality['overall_completion_rate'] = overall_completion_rate
-        
-        # 价值分析
-        total_estimated_value = sum([r.estimated_roi or 0 for r in requirements])
-        total_actual_value = sum([r.actual_roi or 0 for r in requirements if r.actual_roi is not None])
-        
-        value_analysis = {
-            'total_estimated_value': total_estimated_value,
-            'total_actual_value': total_actual_value,
-            'value_accuracy': (total_actual_value / total_estimated_value * 100) if total_estimated_value > 0 else 0
-        }
-        
-        # 分类统计
-        priority_stats = {}
-        category_stats = {}
-        kano_stats = {}
-        
-        for req in requirements:
-            priority_stats[req.priority] = priority_stats.get(req.priority, 0) + 1
-            category_stats[req.category] = category_stats.get(req.category, 0) + 1
-            kano_stats[req.kano_category] = kano_stats.get(req.kano_category, 0) + 1
-        
+        # 构建分析数据
         analysis_data = {
-            'project_name': project.name,
-            'data_quality': data_quality,
-            'value_analysis': value_analysis,
-            'priority_stats': priority_stats,
-            'category_stats': category_stats,
-            'kano_stats': kano_stats
+            'success': True,
+            'project': {
+                'id': project.id,
+                'name': project.name,
+                'description': project.description,
+                'created_at': project.created_at.isoformat() if project.created_at else None
+            },
+            'requirements_count': len(requirements),
+            'requirements_by_status': {},
+            'requirements_by_priority': {},
+            'requirements_by_type': {}
         }
         
-        # 生成建议
-        recommendations = []
-        if data_quality['overall_completion_rate'] < 50:
-            recommendations.append('数据采集完成率较低，建议完善各分析方法的数据')
-        elif data_quality['overall_completion_rate'] < 80:
-            recommendations.append('数据采集完成率良好，建议继续完善剩余数据')
-        else:
-            recommendations.append('数据采集完成率优秀，可进行深度分析')
-        
-        analysis_data['recommendations'] = recommendations
+        # 按状态统计需求
+        for req in requirements:
+            status = req.status or 'unknown'
+            if status not in analysis_data['requirements_by_status']:
+                analysis_data['requirements_by_status'][status] = 0
+            analysis_data['requirements_by_status'][status] += 1
+            
+            # 按优先级统计需求
+            priority = req.priority or 'unknown'
+            if priority not in analysis_data['requirements_by_priority']:
+                analysis_data['requirements_by_priority'][priority] = 0
+            analysis_data['requirements_by_priority'][priority] += 1
+            
+            # 按类型统计需求
+            req_type = req.requirement_type or 'unknown'
+            if req_type not in analysis_data['requirements_by_type']:
+                analysis_data['requirements_by_type'][req_type] = 0
+            analysis_data['requirements_by_type'][req_type] += 1
         
         logger.info(f"用户 {session['user_id']} 查看了项目 {project.name} 的综合分析报告")
         return add_cache_headers(jsonify(analysis_data))

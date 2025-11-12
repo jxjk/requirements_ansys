@@ -10,11 +10,34 @@ class Project(db.Model):
     description = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    creator = db.Column(db.String(100))  # 添加项目创建者字段
     
     # 关系
     stakeholders = db.relationship('Stakeholder', backref='project', lazy=True, cascade='all, delete-orphan')
     requirements = db.relationship('Requirement', backref='project', lazy=True, cascade='all, delete-orphan')
     milestones = db.relationship('Milestone', backref='project', lazy=True, cascade='all, delete-orphan')
+    
+    def can_be_accessed_by(self, user_id, user_role, check_type='default'):
+        """
+        检查用户是否有权限访问该项目
+        :param user_id: 用户ID
+        :param user_role: 用户角色
+        :param check_type: 检查类型 ('default' 或 'stakeholder')
+        """
+        # 管理员可以访问所有项目
+        if user_role == 'admin':
+            return True
+        
+        # 干系人页面允许所有登录用户访问
+        if check_type == 'stakeholder':
+            return True
+        
+        # 项目创建者可以访问
+        if self.creator == user_id:
+            return True
+            
+        # 其他情况无法访问
+        return False
 
 class Stakeholder(db.Model):
     __tablename__ = 'stakeholders'
