@@ -521,8 +521,6 @@ async function deleteStakeholder(stakeholderId) {
         if (result.success) {
             loadStakeholders();
             RequirementsAnalyst.showToast('干系人删除成功', 'success');
-        } else {
-            RequirementsAnalyst.showToast('删除失败', 'danger');
         }
     } catch (error) {
         console.error('删除干系人失败:', error);
@@ -550,7 +548,7 @@ document.getElementById('addStakeholderModal').addEventListener('hidden.bs.modal
     `;
 });
 
-// 更新矩阵图
+// 更新干系人矩阵图
 function updateMatrixChart(stakeholders) {
     const ctx = document.getElementById('matrixChart').getContext('2d');
     
@@ -628,38 +626,34 @@ function updateMatrixChart(stakeholders) {
         }
     });
     
-    // 更新图例
+    // 更新图例说明
     updateMatrixLegend();
 }
 
-// 更新矩阵图例
+// 更新矩阵图例说明
 function updateMatrixLegend() {
-    const legendContainer = document.getElementById('matrixLegend');
-    legendContainer.innerHTML = `
+    const legendDiv = document.getElementById('matrixLegend');
+    legendDiv.innerHTML = `
         <div class="row text-center">
             <div class="col-md-3">
-                <div class="p-2 bg-light">
-                    <strong>低影响力 + 低关注度</strong><br>
-                    <small>最小努力</small>
-                </div>
+                <div style="background-color: rgba(255, 99, 132, 0.2); border: 1px solid rgba(255, 99, 132, 1); height: 20px; width: 20px; display: inline-block;"></div>
+                <div>重点管理</div>
+                <small class="text-muted">高影响力高关注度</small>
             </div>
             <div class="col-md-3">
-                <div class="p-2 bg-info text-white">
-                    <strong>高影响力 + 低关注度</strong><br>
-                    <small>保持满意</small>
-                </div>
+                <div style="background-color: rgba(255, 206, 86, 0.2); border: 1px solid rgba(255, 206, 86, 1); height: 20px; width: 20px; display: inline-block;"></div>
+                <div>保持满意</div>
+                <small class="text-muted">高影响力低关注度</small>
             </div>
             <div class="col-md-3">
-                <div class="p-2 bg-warning">
-                    <strong>低影响力 + 高关注度</strong><br>
-                    <small>及时告知</small>
-                </div>
+                <div style="background-color: rgba(75, 192, 192, 0.2); border: 1px solid rgba(75, 192, 192, 1); height: 20px; width: 20px; display: inline-block;"></div>
+                <div>随时告知</div>
+                <small class="text-muted">低影响力高关注度</small>
             </div>
             <div class="col-md-3">
-                <div class="p-2 bg-danger text-white">
-                    <strong>高影响力 + 高关注度</strong><br>
-                    <small>重点管理</small>
-                </div>
+                <div style="background-color: rgba(153, 102, 255, 0.2); border: 1px solid rgba(153, 102, 255, 1); height: 20px; width: 20px; display: inline-block;"></div>
+                <div>监督</div>
+                <small class="text-muted">低影响力低关注度</small>
             </div>
         </div>
     `;

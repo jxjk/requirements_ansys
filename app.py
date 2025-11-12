@@ -254,36 +254,22 @@ def api_stakeholders(project_id):
     } for s in stakeholders])
     return response
 
-@app.route('/api/stakeholders/<int:project_id>/<int:stakeholder_id>', methods=['GET', 'PUT', 'DELETE'])
+@app.route('/api/stakeholders/<int:stakeholder_id>', methods=['PUT', 'DELETE'])
 @login_required
-def api_stakeholder_detail(project_id, stakeholder_id):
+def api_stakeholder_detail(stakeholder_id):
     """单个干系人API接口"""
-    stakeholder = Stakeholder.query.filter_by(id=stakeholder_id, project_id=project_id).first_or_404()
+    stakeholder = Stakeholder.query.get_or_404(stakeholder_id)
     
-    if request.method == 'GET':
-        response = jsonify({
-            'id': stakeholder.id,
-            'name': stakeholder.name,
-            'role': stakeholder.role,
-            'influence': stakeholder.influence,
-            'interest': stakeholder.interest,
-            'requirements': stakeholder.requirements,
-            'contact_info': stakeholder.contact_info,
-            'notes': stakeholder.notes
-        })
-        return add_cache_headers(response)
-    
-    elif request.method == 'PUT':
+    if request.method == 'PUT':
         data = request.get_json()
         old_name = stakeholder.name
-        stakeholder.name = data.get('name', stakeholder.name)
-        stakeholder.role = data.get('role', stakeholder.role)
-        stakeholder.influence = int(data.get('influence', stakeholder.influence))
-        stakeholder.interest = int(data.get('interest', stakeholder.interest))
-        stakeholder.requirements = data.get('requirements', stakeholder.requirements)
-        stakeholder.contact_info = data.get('contact_info', stakeholder.contact_info)
-        stakeholder.notes = data.get('notes', stakeholder.notes)
-        stakeholder.updated_at = datetime.utcnow()
+        stakeholder.name = data['name']
+        stakeholder.role = data['role']
+        stakeholder.influence = int(data['influence'])
+        stakeholder.interest = int(data['interest'])
+        stakeholder.requirements = data['requirements']
+        stakeholder.contact_info = data['contact_info']
+        stakeholder.notes = data['notes']
         
         db.session.commit()
         logger.info(f"用户 {session['user_id']} 更新了干系人: {old_name} -> {stakeholder.name}")

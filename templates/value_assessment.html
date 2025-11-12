@@ -1,0 +1,488 @@
+{% extends "base.html" %}
+
+{% block title %}{{ project.name }} - 价值评估{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('index') }}">项目</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('project_detail', project_id=project.id) }}">{{ project.name }}</a></li>
+                <li class="breadcrumb-item active">价值评估</li>
+            </ol>
+        </nav>
+        
+        <div class="d-flex justify-content-between align-items-center">
+            <h2><i class="fas fa-chart-line me-2"></i>价值评估分析</h2>
+            <div>
+                <a href="{{ url_for('requirement_analysis', project_id=project.id) }}" class="btn btn-outline-primary me-2">
+                    <i class="fas fa-arrow-left me-1"></i>返回分析
+                </a>
+                <button class="btn btn-primary" id="exportReportBtn"data-project-id="{{ project.id }}" >
+                    <i class="fas fa-download me-1"></i>导出报告
+                </button>
+            </div>
+        </div>
+        <p class="text-muted">对比预估价值与实际价值，提升需求提案质量</p>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h3>{{ completed_requirements|length }}</h3>
+                <p class="text-muted">已完成需求</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h3>{{ "%+.1f"|format(average_accuracy * 100) }}%</h3>
+                <p class="text-muted">平均预估准确率</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h3>{{ best_performer }}</h3>
+                <p class="text-muted">最佳提案人</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h3>{{ improvement_trend }}</h3>
+                <p class="text-muted">质量改善趋势</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">价值评估对比</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover" id="valueAssessmentTable">
+                        <thead>
+                            <tr>
+                                <th>需求标题</th>
+                                <th>提案人</th>
+                                <th>预估ROI</th>
+                                <th>实际ROI</th>
+                                <th>准确率</th>
+                                <th>偏差分析</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for requirement in requirements %}
+                            <tr>
+                                <td>
+                                    <strong>{{ requirement.title }}</strong>
+                                    <br>
+                                    <small class="text-muted">{{ requirement.source }}</small>
+                                </td>
+                                <td>{{ requirement.value_assessor or '未记录' }}</td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if requirement.estimated_roi > 1.5 else 'warning' if requirement.estimated_roi > 1 else 'secondary' }}">
+                                        {{ "%.2f"|format(requirement.estimated_roi) }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if requirement.actual_roi > 0 %}
+                                    <span class="badge bg-{{ 'success' if requirement.actual_roi > 1.5 else 'warning' if requirement.actual_roi > 1 else 'secondary' }}">
+                                        {{ "%.2f"|format(requirement.actual_roi) }}
+                                    </span>
+                                    {% else %}
+                                    <span class="badge bg-light text-muted">待评估</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if requirement.actual_roi > 0 %}
+                                    {% set accuracy = (1 - (requirement.actual_roi - requirement.estimated_roi)|abs / requirement.actual_roi) * 100 %}
+                                    <span class="badge bg-{{ 'success' if accuracy > 80 else 'warning' if accuracy > 60 else 'danger' }}">
+                                        {{ "%.1f"|format(accuracy) }}%
+                                    </span>
+                                    {% else %}
+                                    <span class="badge bg-light text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if requirement.actual_roi > 0 %}
+                                    {% set deviation = requirement.actual_roi - requirement.estimated_roi %}
+                                    <span class="text-{{ 'success' if deviation > 0.5 else 'danger' if deviation < -0.5 else 'warning' }}">
+                                        {{ "%+.2f"|format(deviation) }}
+                                    </span>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary edit-assessment-btn" 
+                                            data-requirement-id="{{ requirement.id }}"
+                                            {% if requirement.status != 'completed' %}disabled title="只有已完成的需求才能评估"{% endif %}>
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="7" class="text-center text-muted py-4">
+                                    <i class="fas fa-chart-bar fa-2x mb-2"></i>
+                                    <p>暂无需求数据</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 价值评估模态框 -->
+<div class="modal fade" id="assessmentModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">实际价值评估</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="assessmentForm">
+                    <input type="hidden" id="assessmentRequirementId">
+                    
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <h6 id="requirementTitle"></h6>
+                            <p class="text-muted" id="requirementDescription"></p>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0">预估价值</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-2">
+                                        <small class="text-muted">业务价值:</small>
+                                        <span id="estimatedBusinessValue" class="badge bg-info float-end">0分</span>
+                                    </div>
+                                    <div class="mb-2">
+                                        <small class="text-muted">用户价值:</small>
+                                        <span id="estimatedUserValue" class="badge bg-info float-end">0分</span>
+                                    </div>
+                                    <div class="mb-2">
+                                        <small class="text-muted">技术价值:</small>
+                                        <span id="estimatedTechnicalValue" class="badge bg-info float-end">0分</span>
+                                    </div>
+                                    <div class="mb-2">
+                                        <small class="text-muted">工作量:</small>
+                                        <span id="estimatedEffort" class="badge bg-warning float-end">0分</span>
+                                    </div>
+                                    <hr>
+                                    <div>
+                                        <small class="text-muted">预估ROI:</small>
+                                        <span id="estimatedROI" class="badge bg-success float-end">0.00</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0">实际价值</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-2">
+                                        <label class="form-label small">实际业务价值</label>
+                                        <input type="range" class="form-range" id="actualBusinessValue" min="1" max="10" value="5">
+                                        <div class="d-flex justify-content-between">
+                                            <small>1分</small>
+                                            <span id="actualBusinessDisplay">5分</span>
+                                            <small>10分</small>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-2">
+                                        <label class="form-label small">实际用户价值</label>
+                                        <input type="range" class="form-range" id="actualUserValue" min="1" max="10" value="5">
+                                        <div class="d-flex justify-content-between">
+                                            <small>1分</small>
+                                            <span id="actualUserDisplay">5分</span>
+                                            <small>10分</small>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-2">
+                                        <label class="form-label small">实际技术价值</label>
+                                        <input type="range" class="form-range" id="actualTechnicalValue" min="1" max="10" value="5">
+                                        <div class="d-flex justify-content-between">
+                                            <small>1分</small>
+                                            <span id="actualTechnicalDisplay">5分</span>
+                                            <small>10分</small>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-2">
+                                        <label class="form-label small">实际工作量</label>
+                                        <input type="range" class="form-range" id="actualEffort" min="1" max="10" value="5">
+                                        <div class="d-flex justify-content-between">
+                                            <small>1分</small>
+                                            <span id="actualEffortDisplay">5分</span>
+                                            <small>10分</small>
+                                        </div>
+                                    </div>
+                                    
+                                    <hr>
+                                    <div>
+                                        <small class="text-muted">实际ROI:</small>
+                                        <span id="actualROIDisplay" class="badge bg-success float-end">1.00</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="actualValueAssessor" class="form-label">评估人</label>
+                        <input type="text" class="form-control" id="actualValueAssessor" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="saveAssessmentBtn">保存评估</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 绑定编辑按钮事件
+    bindEditButtons();
+    
+    // 绑定保存按钮事件
+    const saveBtn = document.getElementById('saveAssessmentBtn');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', saveActualAssessment);
+    }
+    
+    // 绑定导出按钮事件
+    const exportBtn = document.getElementById('exportReportBtn');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', function() {
+            const projectId = this.getAttribute('data-project-id');
+            exportValueReport( projectId );
+        });
+    }
+    
+    // 绑定滑块事件
+    ['actualBusinessValue', 'actualUserValue', 'actualTechnicalValue', 'actualEffort'].forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.addEventListener('input', function() {
+                const displayId = id.replace('Value', 'Display').replace('Effort', 'EffortDisplay');
+                const displayElement = document.getElementById(displayId);
+                if (displayElement) {
+                    displayElement.textContent = this.value + '分';
+                }
+                updateROIDisplay();
+            });
+        }
+    });
+    
+    // 初始化显示
+    updateROIDisplay();
+});
+
+function bindEditButtons() {
+    // 使用事件委托确保动态添加的元素也能响应事件
+    document.getElementById('valueAssessmentTable').addEventListener('click', function(e) {
+        if (e.target.closest('.edit-assessment-btn')) {
+            const button = e.target.closest('.edit-assessment-btn');
+            const requirementId = button.getAttribute('data-requirement-id');
+            if (requirementId) {
+                openAssessmentModal(requirementId);
+            }
+        }
+    });
+}
+
+// 实时更新ROI计算
+function updateROIDisplay() {
+    const businessValue = parseInt(document.getElementById('actualBusinessValue')?.value) || 0;
+    const userValue = parseInt(document.getElementById('actualUserValue')?.value) || 0;
+    const technicalValue = parseInt(document.getElementById('actualTechnicalValue')?.value) || 0;
+    const effort = parseInt(document.getElementById('actualEffort')?.value) || 1;
+    
+    const totalValue = businessValue + userValue + technicalValue;
+    const roi = effort > 0 ? (totalValue / effort).toFixed(2) : '0.00';
+    
+    const roiDisplay = document.getElementById('actualROIDisplay');
+    if (roiDisplay) {
+        roiDisplay.textContent = roi;
+    }
+}
+
+// 打开评估模态框
+async function openAssessmentModal(requirementId) {
+    try {
+        const response = await fetch(`/api/requirements/${requirementId}`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const requirement = await response.json();
+        
+        if (!requirement) {
+            RequirementsAnalyst.showToast('加载需求详情失败', 'danger');
+            return;
+        }
+        
+        document.getElementById('assessmentRequirementId').value = requirementId;
+        document.getElementById('requirementTitle').textContent = requirement.title || '';
+        document.getElementById('requirementDescription').textContent = requirement.description || '';
+        
+        // 显示预估价值
+        document.getElementById('estimatedBusinessValue').textContent = (requirement.estimated_business_value || 0) + '分';
+        document.getElementById('estimatedUserValue').textContent = (requirement.estimated_user_value || 0) + '分';
+        document.getElementById('estimatedTechnicalValue').textContent = (requirement.estimated_technical_value || 0) + '分';
+        document.getElementById('estimatedEffort').textContent = (requirement.estimated_effort || 1) + '分';
+        document.getElementById('estimatedROI').textContent = (requirement.estimated_roi || 0).toFixed(2);
+        
+        // 设置实际价值默认值
+        document.getElementById('actualBusinessValue').value = requirement.actual_business_value || 5;
+        document.getElementById('actualUserValue').value = requirement.actual_user_value || 5;
+        document.getElementById('actualTechnicalValue').value = requirement.actual_technical_value || 5;
+        document.getElementById('actualEffort').value = requirement.actual_effort || 5;
+        
+        // 更新显示
+        document.getElementById('actualBusinessDisplay').textContent = (requirement.actual_business_value || 5) + '分';
+        document.getElementById('actualUserDisplay').textContent = (requirement.actual_user_value || 5) + '分';
+        document.getElementById('actualTechnicalDisplay').textContent = (requirement.actual_technical_value || 5) + '分';
+        document.getElementById('actualEffortDisplay').textContent = (requirement.actual_effort || 5) + '分';
+        
+        document.getElementById('actualValueAssessor').value = requirement.actual_value_assessor || '';
+        
+        updateROIDisplay();
+        
+        const modal = new bootstrap.Modal(document.getElementById('assessmentModal'));
+        modal.show();
+        
+    } catch (error) {
+        console.error('加载需求详情失败:', error);
+        RequirementsAnalyst.showToast('加载失败: ' + error.message, 'danger');
+    }
+}
+
+// 保存实际评估
+async function saveActualAssessment() {
+    const requirementId = document.getElementById('assessmentRequirementId').value;
+    const formData = {
+        actual_business_value: parseInt(document.getElementById('actualBusinessValue').value),
+        actual_user_value: parseInt(document.getElementById('actualUserValue').value),
+        actual_technical_value: parseInt(document.getElementById('actualTechnicalValue').value),
+        actual_effort: parseInt(document.getElementById('actualEffort').value),
+        actual_value_assessor: document.getElementById('actualValueAssessor').value
+    };
+    
+    if (!formData.actual_value_assessor) {
+        alert('请填写评估人姓名');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/requirements/${requirementId}/actual-assessment`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData)
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            const modalElement = document.getElementById('assessmentModal');
+            if (modalElement) {
+                const modal = bootstrap.Modal.getInstance(modalElement);
+                if (modal) {
+                    modal.hide();
+                }
+            }
+            
+            // 重新加载页面以更新统计数据
+            setTimeout(() => {
+                location.reload();
+            }, 500);
+            
+            RequirementsAnalyst.showToast('评估保存成功', 'success');
+        } else {
+            RequirementsAnalyst.showToast('保存失败: ' + (result.error || '未知错误'), 'danger');
+        }
+    } catch (error) {
+        console.error('保存评估失败:', error);
+        RequirementsAnalyst.showToast('保存失败: ' + error.message, 'danger');
+    }
+}
+
+// 导出价值评估报告
+async function exportValueReport(projectId) {
+    try {
+        const response = await fetch(`/api/projects/${projectId}/value-report`);
+        
+        if (response.ok) {
+            const contentDisposition = response.headers.get('Content-Disposition');
+            let filename = `价值评估报告_${new Date().toISOString().slice(0, 10)}.json`;
+            
+            if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+                if (filenameMatch && filenameMatch[1]) {
+                    filename = filenameMatch[1];
+                }
+            }
+            
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            
+            RequirementsAnalyst.showToast('报告导出成功', 'success');
+        } else {
+            const errorText = await response.text();
+            RequirementsAnalyst.showToast('导出失败: ' + errorText, 'danger');
+        }
+    } catch (error) {
+        console.error('导出报告失败:', error);
+        RequirementsAnalyst.showToast('导出失败: ' + error.message, 'danger');
+    }
+}
+</script>
+{% endblock %}
